@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.spec
+
+# macOS
+.DS_Store
+
+# PyInstaller
+*.spec
+
+# 編輯器
+.vscode/
+.idea/
+*.swp
+
+# 測試檔案
+tmp_*
+tmp_rovodev_*
+test_*.pptx

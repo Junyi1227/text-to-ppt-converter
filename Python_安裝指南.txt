@@ -1,0 +1,375 @@
+======================================================
+Python 版本安裝與使用指南
+Python Installation and Usage Guide
+======================================================
+
+📌 適合：想要跨平台使用、需要批次處理、或需要更多自訂功能的用戶
+
+---
+
+## 一、安裝 Python（如果尚未安裝）
+
+### Windows 用戶
+
+1. 前往 Python 官網下載：
+   https://www.python.org/downloads/
+
+2. 下載 Python 3.8 或更新版本
+
+3. 執行安裝程式時，**務必勾選**：
+   ✅ Add Python to PATH
+
+4. 驗證安裝：
+   開啟命令提示字元（cmd）或 PowerShell，輸入：
+   ```
+   python --version
+   ```
+   應該顯示類似：Python 3.11.x
+
+
+### Mac 用戶
+
+方法 1：使用 Homebrew（推薦）
+```bash
+# 1. 安裝 Homebrew（如果尚未安裝）
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 2. 安裝 Python
+brew install python3
+
+# 3. 驗證安裝
+python3 --version
+```
+
+方法 2：從官網下載
+1. 前往 https://www.python.org/downloads/macos/
+2. 下載 macOS installer
+3. 執行安裝程式
+
+
+### Linux 用戶
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install python3 python3-pip
+
+# Fedora/CentOS
+sudo dnf install python3 python3-pip
+
+# 驗證安裝
+python3 --version
+```
+
+---
+
+## 二、安裝 python-pptx 套件
+
+### 所有平台通用
+
+開啟終端機（Mac/Linux）或命令提示字元（Windows），輸入：
+
+```bash
+# Windows
+pip install python-pptx
+
+# Mac/Linux
+pip3 install python-pptx
+```
+
+驗證安裝：
+```bash
+# Windows
+python -c "import pptx; print('安裝成功！')"
+
+# Mac/Linux
+python3 -c "import pptx; print('安裝成功！')"
+```
+
+---
+
+## 三、使用 Python 轉換工具
+
+### 基本使用
+
+```bash
+# 轉換單一檔案
+python text_to_ppt.py 範例輸入文字.txt
+
+# 指定輸出檔名
+python text_to_ppt.py 輸入.txt 輸出.pptx
+
+# Mac/Linux 使用 python3
+python3 text_to_ppt.py 範例輸入文字.txt
+```
+
+### 批次轉換多個檔案
+
+**Windows (PowerShell)**
+```powershell
+# 轉換目前資料夾中所有 .txt 檔案
+Get-ChildItem *.txt | ForEach-Object {
+    python text_to_ppt.py $_.Name
+}
+
+# 或更簡潔的版本
+ls *.txt | % { python text_to_ppt.py $_.Name }
+```
+
+**Mac/Linux (Bash)**
+```bash
+# 轉換目前資料夾中所有 .txt 檔案
+for file in *.txt; do
+    python3 text_to_ppt.py "$file"
+done
+
+# 或使用 find
+find . -name "*.txt" -exec python3 text_to_ppt.py {} \;
+```
+
+---
+
+## 四、進階自訂
+
+### 修改預設樣式
+
+編輯 `text_to_ppt.py`，找到 `__init__` 方法：
+
+```python
+def __init__(self):
+    self.prs = Presentation()
+    
+    # 修改這些值來自訂樣式
+    self.title_bg_color = RGBColor(230, 240, 255)     # 主題頁背景色
+    self.content_bg_color = RGBColor(245, 245, 245)   # 內文頁背景色
+    self.font_name = "微軟正黑體"                      # 字型名稱
+```
+
+### 常用顏色參考
+
+```python
+# 藍色系
+RGBColor(173, 216, 230)  # 淺藍色
+RGBColor(70, 130, 180)   # 鋼藍色
+RGBColor(0, 0, 139)      # 深藍色
+
+# 綠色系
+RGBColor(144, 238, 144)  # 淺綠色
+RGBColor(34, 139, 34)    # 森林綠
+RGBColor(0, 100, 0)      # 深綠色
+
+# 灰色系
+RGBColor(245, 245, 245)  # 極淺灰
+RGBColor(220, 220, 220)  # 淺灰色
+RGBColor(128, 128, 128)  # 中灰色
+
+# 暖色系
+RGBColor(255, 250, 240)  # 花白色
+RGBColor(255, 228, 196)  # 淺橙色
+RGBColor(255, 192, 203)  # 粉紅色
+```
+
+### 使用現有模板
+
+修改 `__init__` 方法：
+
+```python
+def __init__(self, template_file=None):
+    if template_file and os.path.exists(template_file):
+        self.prs = Presentation(template_file)
+    else:
+        self.prs = Presentation()
+    # ... 其餘程式碼
+```
+
+使用時：
+```bash
+python text_to_ppt.py 輸入.txt 輸出.pptx --template 模板.pptx
+```
+
+---
+
+## 五、整合到工作流程
+
+### 建立快捷指令（Windows）
+
+建立 `convert.bat` 批次檔：
+
+```batch
+@echo off
+python text_to_ppt.py %1
+pause
+```
+
+使用方式：直接拖曳 .txt 檔案到 convert.bat 上
+
+### 建立快捷指令（Mac/Linux）
+
+建立 `convert.sh` 腳本：
+
+```bash
+#!/bin/bash
+python3 text_to_ppt.py "$1"
+```
+
+賦予執行權限：
+```bash
+chmod +x convert.sh
+```
+
+使用方式：
+```bash
+./convert.sh 輸入檔案.txt
+```
+
+### 建立 Python 虛擬環境（進階）
+
+如果您有多個 Python 專案，建議使用虛擬環境：
+
+```bash
+# 建立虛擬環境
+python -m venv ppt_env
+
+# 啟用虛擬環境
+# Windows:
+ppt_env\Scripts\activate
+# Mac/Linux:
+source ppt_env/bin/activate
+
+# 安裝套件
+pip install python-pptx
+
+# 使用完畢後停用
+deactivate
+```
+
+---
+
+## 六、疑難排解
+
+### 問題 1：找不到 python 指令
+
+**Windows**:
+- 確認安裝時有勾選 "Add Python to PATH"
+- 或使用完整路徑：`C:\Users\你的使用者名稱\AppData\Local\Programs\Python\Python311\python.exe`
+
+**Mac/Linux**:
+- 嘗試使用 `python3` 而不是 `python`
+- 檢查 Python 位置：`which python3`
+
+### 問題 2：ModuleNotFoundError: No module named 'pptx'
+
+解決方法：
+```bash
+# 重新安裝套件
+pip install --upgrade python-pptx
+
+# 或使用完整路徑
+python -m pip install python-pptx
+```
+
+### 問題 3：字型無法顯示
+
+- 確認系統中有安裝該字型
+- 改用系統內建字型（如 Arial、Helvetica）
+- 程式碼中修改：`self.font_name = "Arial"`
+
+### 問題 4：權限錯誤（Permission Denied）
+
+**Mac/Linux**:
+```bash
+# 給予執行權限
+chmod +x text_to_ppt.py
+
+# 使用 sudo 安裝套件（不建議，優先使用虛擬環境）
+sudo pip3 install python-pptx
+```
+
+---
+
+## 七、效能優化
+
+### 大量檔案處理
+
+建立 `batch_convert.py`：
+
+```python
+import os
+import glob
+from text_to_ppt import TextToPPTConverter
+
+# 找出所有 .txt 檔案
+txt_files = glob.glob("*.txt")
+
+for txt_file in txt_files:
+    print(f"處理: {txt_file}")
+    output_file = txt_file.replace('.txt', '.pptx')
+    
+    converter = TextToPPTConverter()
+    converter.convert_from_file(txt_file)
+    converter.save(output_file)
+
+print(f"完成！共處理 {len(txt_files)} 個檔案")
+```
+
+執行：
+```bash
+python batch_convert.py
+```
+
+---
+
+## 八、與其他工具整合
+
+### 整合到 VS Code
+
+1. 安裝 Python 擴充套件
+2. 設定 tasks.json：
+
+```json
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Convert to PPT",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "text_to_ppt.py",
+                "${file}"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}
+```
+
+3. 使用 Ctrl+Shift+B 快速轉換
+
+---
+
+## 九、更多資源
+
+### Python 學習資源
+- 官方文檔：https://docs.python.org/zh-tw/3/
+- Python 台灣社群：https://www.python.org.tw/
+
+### python-pptx 文檔
+- 官方文檔：https://python-pptx.readthedocs.io/
+- GitHub：https://github.com/scanny/python-pptx
+
+---
+
+## 十、檢查清單
+
+安裝完成後，請確認以下項目：
+
+✅ Python 已安裝（python --version 或 python3 --version）
+✅ python-pptx 已安裝（pip show python-pptx）
+✅ text_to_ppt.py 檔案可執行
+✅ 範例檔案可成功轉換
+✅ 輸出的 .pptx 檔案可用 PowerPoint 開啟
+
+如果以上都確認無誤，恭喜您已經完成設定！🎉
+
+======================================================

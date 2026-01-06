@@ -1,0 +1,59 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # 允許手動觸發
+
+jobs:
+  build-windows:
+    name: Build Windows .exe
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller python-pptx
+    
+    - name: Build GUI executable
+      run: |
+        pyinstaller --onefile --windowed --name=文字轉PPT工具 --add-data="範例輸入文字.txt;." text_to_ppt_gui.py
+    
+    - name: Build CLI executable (optional)
+      run: |
+        pyinstaller --onefile --name=text_to_ppt text_to_ppt.py
+    
+    - name: Upload GUI artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Windows-GUI-Executable
+        path: dist/文字轉PPT工具.exe
+    
+    - name: Upload CLI artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Windows-CLI-Executable
+        path: dist/text_to_ppt.exe
+    
+    - name: Create Release (on tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/文字轉PPT工具.exe
+          dist/text_to_ppt.exe
+          Windows用戶使用說明.txt
+          範例輸入文字.txt
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
