@@ -35,13 +35,13 @@ jobs:
         pyinstaller --onefile --name=text_to_ppt text_to_ppt.py
     
     - name: Upload GUI artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Windows-GUI-Executable
         path: dist/文字轉PPT工具.exe
     
     - name: Upload CLI artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Windows-CLI-Executable
         path: dist/text_to_ppt.exe
