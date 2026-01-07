@@ -2,7 +2,7 @@
 
 將特定格式的文字自動轉換成 PowerPoint 簡報的跨平台工具。
 
-## 📦 雙版本工具
+## 📦 多種工具版本
 
 ### 🖥️ GUI 版本（推薦一般使用者）
 - **檔案**: `text_to_ppt_gui.py`
@@ -14,7 +14,13 @@
 - **優點**: 適合批次處理和自動化
 - **功能**: 命令列執行，支援腳本整合
 
-**系統需求**: Python 3.6+ 和 python-pptx 套件
+### 📘 Word 轉 PPT 版本（新功能！）
+- **檔案**: `docx_to_ppt.py`
+- **優點**: 從 Word 文件提取藍色文字，一鍵轉換成 PPT
+- **功能**: 自動識別藍色標記的重點內容
+- **使用**: `python docx_to_ppt.py 文件.docx`
+
+**系統需求**: Python 3.6+、python-pptx、python-docx
 
 ---
 
@@ -42,7 +48,24 @@
 
 ## 🚀 快速開始
 
-### 方法一：使用 GUI 版本（推薦）
+### 方法一：Word 轉 PPT（最新功能！）
+
+```bash
+# 1. 安裝相依套件
+pip install python-pptx python-docx
+
+# 2. 在 Word 中用藍色標記重點內容
+
+# 3. 一鍵轉換
+python docx_to_ppt.py 你的文件.docx
+
+# 或指定輸出檔名和標題
+python docx_to_ppt.py 你的文件.docx 我的簡報.pptx "簡報標題"
+```
+
+**完成！** 自動提取藍色文字並建立精美 PPT
+
+### 方法二：使用 GUI 版本
 
 ```bash
 # 1. 安裝相依套件
@@ -58,7 +81,7 @@ python text_to_ppt_gui.py
 3. 選擇儲存位置
 4. 完成！
 
-### 方法二：使用命令列版本
+### 方法三：使用命令列版本
 
 ```bash
 # 1. 安裝相依套件
@@ -71,7 +94,7 @@ python text_to_ppt.py examples/範例輸入文字.txt
 python text_to_ppt.py examples/範例輸入文字.txt 我的簡報.pptx
 ```
 
-### 方法三：快速測試腳本
+### 方法四：快速測試腳本
 
 ```bash
 # Mac/Linux 使用者
@@ -85,16 +108,18 @@ bash scripts/快速開始.sh
 
 ## 📊 功能比較表
 
-| 功能 | GUI 版本 | 命令列版本 |
-|------|---------|-----------|
-| **圖形化介面** | ✅ | ❌ |
-| **文字輸入** | ✅ | ❌ |
-| **檔案輸入** | ✅ | ✅ |
-| **命令列執行** | 🟡 | ✅ |
-| **批次處理** | ❌ | ✅ |
-| **腳本整合** | 🟡 | ✅ |
-| **跨平台** | ✅ | ✅ |
-| **使用難度** | 簡單 | 中等 |
+| 功能 | Word 轉 PPT | GUI 版本 | 命令列版本 |
+|------|------------|---------|-----------|
+| **Word 文件輸入** | ✅ | ❌ | ❌ |
+| **藍色文字識別** | ✅ | ❌ | ❌ |
+| **圖形化介面** | ❌ | ✅ | ❌ |
+| **文字輸入** | ❌ | ✅ | ❌ |
+| **檔案輸入** | ✅ | ✅ | ✅ |
+| **命令列執行** | ✅ | 🟡 | ✅ |
+| **批次處理** | ✅ | ❌ | ✅ |
+| **腳本整合** | ✅ | 🟡 | ✅ |
+| **跨平台** | ✅ | ✅ | ✅ |
+| **使用難度** | 簡單 | 簡單 | 中等 |
 
 ---
 
@@ -144,32 +169,41 @@ self.font_name = "微軟正黑體"  # 字型名稱
 
 ```
 text-to-ppt/
-├── text_to_ppt.py              # 命令列版本
-├── text_to_ppt_gui.py          # GUI 版本
-├── requirements.txt            # Python 套件需求
-├── README.md                   # 本說明文件
+├── text_to_ppt.py                      # 命令列版本
+├── text_to_ppt_gui.py                  # GUI 版本
+├── docx_to_ppt.py                      # Word 轉 PPT（一鍵版本）
+├── extract_blue_text_from_docx.py      # Word 藍色文字提取器
+├── requirements.txt                    # Python 套件需求
+├── README.md                           # 本說明文件
 │
-├── docs/                       # 📚 說明文件
+├── docs/                               # 📚 說明文件
 │   ├── 使用說明.txt
 │   ├── Python_安裝指南.txt
 │   ├── GitHub_Actions_打包教學.md
 │   └── ...更多文件
 │
-├── scripts/                    # 🔧 工具腳本
+├── scripts/                            # 🔧 工具腳本
 │   ├── 快速開始.sh
 │   ├── 測試工具.sh
 │   └── build_windows_exe.py
 │
-├── examples/                   # 📝 範例檔案
-│   └── 範例輸入文字.txt
+├── examples/                           # 📝 範例檔案
+│   ├── 範例輸入文字.txt
+│   └── 使用範例_Word轉PPT.md
 │
-└── .github/workflows/          # ⚙️ GitHub Actions
+└── .github/workflows/                  # ⚙️ GitHub Actions
     └── build.yml
 ```
 
 ---
 
 ## ❓ 常見問題
+
+### Q: Word 轉 PPT 找不到藍色文字？
+**A**: 
+1. 確認 Word 中的文字是用「字型顏色」設定為藍色，不是螢光筆
+2. 確認顏色是標準藍色（RGB 接近 0,0,255）
+3. 可以調整容差值：修改 `extract_blue_text_from_docx.py` 中的 `tolerance` 參數
 
 ### Q: 如何安裝 Python 環境？
 **A**: 
@@ -208,9 +242,11 @@ for file in examples/*.txt; do python text_to_ppt.py "$file"; done
 
 | 情境 | 推薦版本 |
 |------|----------|
+| Word 文件有藍色標記 | **Word 轉 PPT** 🆕 |
+| 從 Word 提取重點 | **Word 轉 PPT** 🆕 |
 | 第一次使用 | **GUI 版本** |
 | 快速建立簡報 | **GUI 版本** |
-| 批次處理多個檔案 | **命令列版本** |
+| 批次處理多個檔案 | **命令列版本** 或 **Word 轉 PPT** |
 | 整合到自動化腳本 | **命令列版本** |
 | 需要進階自訂 | **命令列版本**（修改程式碼） |
 
@@ -218,13 +254,36 @@ for file in examples/*.txt; do python text_to_ppt.py "$file"; done
 
 ## 🎉 開始使用
 
-1. 查看 `examples/範例輸入文字.txt` 了解文字格式
-2. 安裝 Python 和必要套件：`pip install python-pptx`
-3. 選擇適合的版本：
-   - 初學者：使用 GUI 版本 `python text_to_ppt_gui.py`
-   - 開發者：使用命令列版本 `python text_to_ppt.py`
-4. 查看 `docs/` 資料夾獲取更多說明文件
-5. 享受自動化簡報製作的便利！
+1. **選擇適合的版本**：
+   - 有 Word 文件？→ 使用 **Word 轉 PPT** 🆕
+   - 初學者？→ 使用 **GUI 版本**
+   - 開發者？→ 使用 **命令列版本**
+
+2. **安裝必要套件**：
+   ```bash
+   # Word 轉 PPT 需要
+   pip install python-pptx python-docx
+   
+   # 其他版本只需要
+   pip install python-pptx
+   ```
+
+3. **開始使用**：
+   ```bash
+   # Word 轉 PPT
+   python docx_to_ppt.py 你的文件.docx
+   
+   # GUI 版本
+   python text_to_ppt_gui.py
+   
+   # 命令列版本
+   python text_to_ppt.py examples/範例輸入文字.txt
+   ```
+
+4. **查看範例和文件**：
+   - 文字格式範例：`examples/範例輸入文字.txt`
+   - Word 轉 PPT 教學：`examples/使用範例_Word轉PPT.md`
+   - 更多文件：`docs/` 資料夾
 
 **祝您使用愉快！** 🚀
 
@@ -232,6 +291,7 @@ for file in examples/*.txt; do python text_to_ppt.py "$file"; done
 
 ## 📚 更多資源
 
+- [Word 轉 PPT 使用範例](examples/使用範例_Word轉PPT.md) 🆕
 - [完整方案總覽](docs/README_完整方案總覽.md)
 - [Python 安裝指南](docs/Python_安裝指南.txt)
 - [GitHub Actions 打包教學](docs/GitHub_Actions_打包教學.md)
