@@ -8,6 +8,7 @@
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
 import sys
 import os
 import re
@@ -154,75 +155,98 @@ class PPTGenerator:
         slide_layout = source_slide.slide_layout
         new_slide = self.new_prs.slides.add_slide(slide_layout)
         
+        # 刪除所有從模板繼承的文字框（避免空白文字框殘留）
+        shapes_to_remove = []
+        for shape in new_slide.shapes:
+            if hasattr(shape, "text_frame"):
+                shapes_to_remove.append(shape)
+        
+        for shape in shapes_to_remove:
+            sp = shape.element
+            sp.getparent().remove(sp)
+        
         # 檢查是否為經文格式
         verse_match = self.is_verse_format(text)
         
-        # 只複製第一個文字框，並設定新內容
-        text_shape_found = False
+        # 找到第一個文字框的位置和大小資訊
+        source_shape = None
         for shape in source_slide.shapes:
-            if hasattr(shape, "text_frame") and not text_shape_found:
-                # 建立文字框
-                new_shape = new_slide.shapes.add_textbox(
-                    shape.left,
-                    shape.top,
-                    shape.width,
-                    shape.height
-                )
-                
-                # 清空預設文字
-                new_shape.text_frame.clear()
-                
-                if verse_match:
-                    # 經文格式：兩個段落，不同顏色
-                    verse_ref = verse_match.group(1)
-                    verse_text = verse_match.group(2).strip()
-                    
-                    # 轉換章節格式
-                    verse_ref_formatted = self.convert_verse_reference(verse_ref)
-                    
-                    # 第一段：經文章節（淺藍色）
-                    p1 = new_shape.text_frame.paragraphs[0]
-                    p1.text = verse_ref_formatted
-                    for run in p1.runs:
-                        run.font.size = Pt(30)
-                        run.font.bold = True
-                        run.font.name = "微軟正黑體"
-                        run.font.color.rgb = RGBColor(121, 155, 193)  # 淺藍色
-                    
-                    # 第二段：經文內容（深藍色）
-                    p2 = new_shape.text_frame.add_paragraph()
-                    p2.text = verse_text
-                    for run in p2.runs:
-                        run.font.size = Pt(30)
-                        run.font.bold = True
-                        run.font.name = "微軟正黑體"
-                        run.font.color.rgb = RGBColor(27, 54, 106)  # 深藍色
-                
-                else:
-                    # 一般文字：單一段落
-                    p = new_shape.text_frame.paragraphs[0]
-                    p.text = text
-                    
-                    # 複製格式（從模板）
-                    if shape.text_frame.paragraphs:
-                        source_p = shape.text_frame.paragraphs[0]
-                        p.alignment = source_p.alignment
-                        
-                        # 複製字體格式
-                        if source_p.runs:
-                            source_run = source_p.runs[0]
-                            for target_run in p.runs:
-                                if source_run.font.size:
-                                    target_run.font.size = source_run.font.size
-                                if source_run.font.bold:
-                                    target_run.font.bold = source_run.font.bold
-                                if source_run.font.name:
-                                    target_run.font.name = source_run.font.name
-                                if source_run.font.color and source_run.font.color.rgb:
-                                    target_run.font.color.rgb = source_run.font.color.rgb
-                
-                text_shape_found = True
+            if hasattr(shape, "text_frame"):
+                source_shape = shape
                 break
+        
+        if source_shape:
+            # 調整文字框位置，確保在版面內
+            # 使用安全的邊距：左右各 0.5 英吋，上下各 0.3 英吋
+            safe_left = Inches(0.5)
+            safe_top = Inches(0.3)
+            safe_width = Inches(9.0)  # 10 - 0.5*2 = 9
+            safe_height = Inches(5.0)  # 5.625 - 0.3*2 ≈ 5
+            
+            # 建立新的文字框（使用安全範圍）
+            new_shape = new_slide.shapes.add_textbox(
+                safe_left,
+                safe_top,
+                safe_width,
+                safe_height
+            )
+            
+            # 清空預設文字
+            new_shape.text_frame.clear()
+            
+            # 設定文字框屬性
+            new_shape.text_frame.word_wrap = True  # 自動換行
+            new_shape.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE  # 垂直居中對齊
+            new_shape.text_frame.auto_size = MSO_AUTO_SIZE.NONE  # 不自動調整大小（避免超出螢幕）
+            
+            if verse_match:
+                # 經文格式：兩個段落，不同顏色
+                verse_ref = verse_match.group(1)
+                verse_text = verse_match.group(2).strip()
+                
+                # 轉換章節格式
+                verse_ref_formatted = self.convert_verse_reference(verse_ref)
+                
+                # 第一段：經文章節（淺藍色）
+                p1 = new_shape.text_frame.paragraphs[0]
+                p1.text = verse_ref_formatted
+                for run in p1.runs:
+                    run.font.size = Pt(30)
+                    run.font.bold = True
+                    run.font.name = "微軟正黑體"
+                    run.font.color.rgb = RGBColor(121, 155, 193)  # 淺藍色
+                
+                # 第二段：經文內容（深藍色）
+                p2 = new_shape.text_frame.add_paragraph()
+                p2.text = verse_text
+                for run in p2.runs:
+                    run.font.size = Pt(30)
+                    run.font.bold = True
+                    run.font.name = "微軟正黑體"
+                    run.font.color.rgb = RGBColor(27, 54, 106)  # 深藍色
+            
+            else:
+                # 一般文字：單一段落
+                p = new_shape.text_frame.paragraphs[0]
+                p.text = text
+                
+                # 複製格式（從模板）
+                if source_shape.text_frame.paragraphs:
+                    source_p = source_shape.text_frame.paragraphs[0]
+                    p.alignment = source_p.alignment
+                    
+                    # 複製字體格式
+                    if source_p.runs:
+                        source_run = source_p.runs[0]
+                        for target_run in p.runs:
+                            if source_run.font.size:
+                                target_run.font.size = source_run.font.size
+                            if source_run.font.bold:
+                                target_run.font.bold = source_run.font.bold
+                            if source_run.font.name:
+                                target_run.font.name = source_run.font.name
+                            if source_run.font.color and source_run.font.color.rgb:
+                                target_run.font.color.rgb = source_run.font.color.rgb
         
         return new_slide
     
