@@ -22,3 +22,6 @@ build/
 tmp_*
 tmp_rovodev_*
 test_*.pptx
+
+# 輸出檔案
+output.pptx
