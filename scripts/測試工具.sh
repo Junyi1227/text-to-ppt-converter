@@ -25,7 +25,7 @@ echo "檢查必要檔案..."
 FILES=(
     "text_to_ppt.py"
     "text_to_ppt_gui.py"
-    "範例輸入文字.txt"
+    "examples/範例輸入文字.txt"
     ".github/workflows/build.yml"
     "requirements.txt"
 )
@@ -60,7 +60,7 @@ fi
 # 測試命令列版本
 echo ""
 echo "測試 1: 命令列版本..."
-if python3 text_to_ppt.py 範例輸入文字.txt tmp_rovodev_test_cli.pptx 2>/dev/null; then
+if python3 text_to_ppt.py examples/範例輸入文字.txt tmp_rovodev_test_cli.pptx 2>/dev/null; then
     if [ -f "tmp_rovodev_test_cli.pptx" ]; then
         SIZE=$(du -h tmp_rovodev_test_cli.pptx | cut -f1)
         echo "✅ 命令列版本正常（產生檔案: $SIZE）"
@@ -102,7 +102,7 @@ fi
 # 檢查範例檔案格式
 echo ""
 echo "測試 4: 範例檔案格式..."
-if grep -q "##" 範例輸入文字.txt && grep -q "#" 範例輸入文字.txt; then
+if grep -q "##" examples/範例輸入文字.txt && grep -q "#" examples/範例輸入文字.txt; then
     echo "✅ 範例檔案格式正確"
 else
     echo "⚠️  範例檔案格式可能有問題"
@@ -118,8 +118,8 @@ echo "1. 手動測試 GUI："
 echo "   python3 text_to_ppt_gui.py"
 echo ""
 echo "2. 手動測試命令列："
-echo "   python3 text_to_ppt.py 範例輸入文字.txt 輸出.pptx"
+echo "   python3 text_to_ppt.py examples/範例輸入文字.txt 輸出.pptx"
 echo ""
 echo "3. 推送到 GitHub 進行打包："
-echo "   bash 快速開始.sh"
+echo "   bash scripts/快速開始.sh"
 echo ""

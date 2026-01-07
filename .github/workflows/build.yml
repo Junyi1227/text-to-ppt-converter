@@ -28,7 +28,7 @@ jobs:
     
     - name: Build GUI executable
       run: |
-        pyinstaller --onefile --windowed --name=文字轉PPT工具 --add-data="範例輸入文字.txt;." text_to_ppt_gui.py
+        pyinstaller --onefile --windowed --name=文字轉PPT工具 --add-data="examples/範例輸入文字.txt;examples" text_to_ppt_gui.py
     
     - name: Build CLI executable (optional)
       run: |
@@ -53,7 +53,7 @@ jobs:
         files: |
           dist/文字轉PPT工具.exe
           dist/text_to_ppt.exe
-          Windows用戶使用說明.txt
-          範例輸入文字.txt
+          docs/Windows用戶使用說明.txt
+          examples/範例輸入文字.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

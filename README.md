@@ -1,23 +1,20 @@
 # 文字轉 PowerPoint 工具
 
-將特定格式的文字自動轉換成 PowerPoint 簡報的工具集合。
+將特定格式的文字自動轉換成 PowerPoint 簡報的跨平台工具。
 
-## 📦 包含三個版本
+## 📦 雙版本工具
 
-### 1️⃣ Windows VBA 版本（推薦 Windows 用戶）
-- **檔案**: `TextToPPT_VBA.bas`
-- **優點**: 完整功能，支援剪貼簿和檔案輸入
-- **缺點**: 僅限 Windows
+### 🖥️ GUI 版本（推薦一般使用者）
+- **檔案**: `text_to_ppt_gui.py`
+- **優點**: 圖形化介面，操作簡單直覺
+- **功能**: 文字輸入或檔案選擇，即時預覽
 
-### 2️⃣ Mac VBA 版本（Mac 用戶專用）
-- **檔案**: `TextToPPT_VBA_Mac.bas`
-- **優點**: Mac 相容，無需安裝其他軟體
-- **缺點**: 只支援檔案輸入（不支援剪貼簿）
-
-### 3️⃣ Python 跨平台版本（推薦跨平台使用者）
+### ⌨️ 命令列版本（推薦開發者）
 - **檔案**: `text_to_ppt.py`
-- **優點**: Mac/Windows/Linux 都可用，功能強大
-- **缺點**: 需要安裝 Python 和 python-pptx
+- **優點**: 適合批次處理和自動化
+- **功能**: 命令列執行，支援腳本整合
+
+**系統需求**: Python 3.6+ 和 python-pptx 套件
 
 ---
 
@@ -45,56 +42,59 @@
 
 ## 🚀 快速開始
 
-### Windows 用戶
+### 方法一：使用 GUI 版本（推薦）
 
-1. 開啟 PowerPoint
-2. 按 `Alt+F11` 開啟 VBA 編輯器
-3. 插入 → 模組
-4. 複製 `TextToPPT_VBA.bas` 的內容並貼上
-5. 複製 `範例輸入文字.txt` 的內容到剪貼簿
-6. 按 `F5` 執行 `ConvertTextToPPT`
+```bash
+# 1. 安裝相依套件
+pip install python-pptx
 
-### Mac 用戶
+# 2. 啟動 GUI
+python text_to_ppt_gui.py
+```
 
-**⚠️ 重要：Mac 版本只支援從檔案讀取**
+然後在視窗中：
+1. 直接輸入文字或點擊「選擇檔案」載入 `examples/範例輸入文字.txt`
+2. 點擊「轉換為 PPT」
+3. 選擇儲存位置
+4. 完成！
 
-1. 開啟 PowerPoint
-2. 工具 → 巨集 → Visual Basic 編輯器
-3. 插入 → 模組
-4. 複製 `TextToPPT_VBA_Mac.bas` 的內容並貼上
-5. 按 `▶️` 執行 `ConvertTextFileToPPT`（檔案讀取）
-6. 選擇 `範例輸入文字.txt` 檔案
-
-**其他方法：**
-- `ConvertTextFromNotes`：從投影片備註欄讀取
-- 詳細說明請參考 `Mac使用說明.txt`
-
-### Python 用戶（Mac/Windows/Linux）
+### 方法二：使用命令列版本
 
 ```bash
 # 1. 安裝相依套件
 pip install python-pptx
 
 # 2. 執行轉換
-python text_to_ppt.py 範例輸入文字.txt
+python text_to_ppt.py examples/範例輸入文字.txt
 
 # 或指定輸出檔名
-python text_to_ppt.py 範例輸入文字.txt 我的簡報.pptx
+python text_to_ppt.py examples/範例輸入文字.txt 我的簡報.pptx
+```
+
+### 方法三：快速測試腳本
+
+```bash
+# Mac/Linux 使用者
+bash scripts/測試工具.sh
+
+# 或使用快速開始腳本（適合 GitHub 部署）
+bash scripts/快速開始.sh
 ```
 
 ---
 
 ## 📊 功能比較表
 
-| 功能 | Windows VBA | Mac VBA | Python |
-|------|-------------|---------|--------|
-| **剪貼簿輸入** | ✅ | ❌ | ❌ |
-| **檔案輸入** | ✅ | ✅ | ✅ |
-| **對話框輸入** | ✅ | ✅ | ❌ |
-| **命令列執行** | ❌ | ❌ | ✅ |
-| **批次處理** | 🟡 | 🟡 | ✅ |
-| **自訂樣式** | 🟡 程式碼 | 🟡 程式碼 | ✅ 程式碼 |
-| **跨平台** | ❌ | ❌ | ✅ |
+| 功能 | GUI 版本 | 命令列版本 |
+|------|---------|-----------|
+| **圖形化介面** | ✅ | ❌ |
+| **文字輸入** | ✅ | ❌ |
+| **檔案輸入** | ✅ | ✅ |
+| **命令列執行** | 🟡 | ✅ |
+| **批次處理** | ❌ | ✅ |
+| **腳本整合** | 🟡 | ✅ |
+| **跨平台** | ✅ | ✅ |
+| **使用難度** | 簡單 | 中等 |
 
 ---
 
@@ -140,27 +140,38 @@ self.font_name = "微軟正黑體"  # 字型名稱
 
 ---
 
-## 📁 檔案說明
+## 📁 專案結構
 
-| 檔案 | 說明 |
-|------|------|
-| `TextToPPT_VBA.bas` | Windows VBA 版本（完整功能） |
-| `TextToPPT_VBA_Mac.bas` | Mac VBA 版本（相容性優化） |
-| `text_to_ppt.py` | Python 跨平台版本 |
-| `範例輸入文字.txt` | 範例文字檔案 |
-| `使用說明.txt` | 詳細使用手冊（Windows 為主） |
-| `Mac使用說明.txt` | **Mac 用戶專用說明** |
-| `Python_安裝指南.txt` | Python 環境設定指南 |
-| `README.md` | 本說明文件 |
+```
+text-to-ppt/
+├── text_to_ppt.py              # 命令列版本
+├── text_to_ppt_gui.py          # GUI 版本
+├── requirements.txt            # Python 套件需求
+├── README.md                   # 本說明文件
+│
+├── docs/                       # 📚 說明文件
+│   ├── 使用說明.txt
+│   ├── Python_安裝指南.txt
+│   ├── GitHub_Actions_打包教學.md
+│   └── ...更多文件
+│
+├── scripts/                    # 🔧 工具腳本
+│   ├── 快速開始.sh
+│   ├── 測試工具.sh
+│   └── build_windows_exe.py
+│
+├── examples/                   # 📝 範例檔案
+│   └── 範例輸入文字.txt
+│
+└── .github/workflows/          # ⚙️ GitHub Actions
+    └── build.yml
+```
 
 ---
 
 ## ❓ 常見問題
 
-### Q: Mac 版為什麼不能從剪貼簿讀取？
-**A**: Mac 版 Office 的 VBA 不支援 Windows 的剪貼簿 API。建議使用檔案輸入或改用 Python 版本。
-
-### Q: Python 版本如何安裝？
+### Q: 如何安裝 Python 環境？
 **A**: 
 ```bash
 # 檢查是否已安裝 Python
@@ -171,21 +182,19 @@ pip install python-pptx  # 或 pip3 install python-pptx
 ```
 
 ### Q: 可以使用現有的 PPT 模板嗎？
-**A**: 
-- **VBA 版本**: 先開啟您的模板檔案，再執行巨集，新投影片會加到最後
-- **Python 版本**: 需要修改程式碼，載入現有模板：
-  ```python
-  self.prs = Presentation('您的模板.pptx')
-  ```
+**A**: 需要修改程式碼，在 `text_to_ppt.py` 的 `__init__` 方法中載入現有模板：
+```python
+self.prs = Presentation('您的模板.pptx')
+```
 
 ### Q: 如何批次處理多個文字檔？
-**A**: 使用 Python 版本最方便：
+**A**: 使用命令列版本：
 ```bash
 # Windows PowerShell
-Get-ChildItem *.txt | ForEach-Object { python text_to_ppt.py $_.Name }
+Get-ChildItem examples/*.txt | ForEach-Object { python text_to_ppt.py $_.FullName }
 
 # Mac/Linux
-for file in *.txt; do python text_to_ppt.py "$file"; done
+for file in examples/*.txt; do python text_to_ppt.py "$file"; done
 ```
 
 ### Q: 字型在不同電腦上會不會跑掉？
@@ -195,34 +204,35 @@ for file in *.txt; do python text_to_ppt.py "$file"; done
 
 ---
 
-## 🔒 安全性提示
-
-執行 VBA 巨集時，PowerPoint 可能會顯示安全性警告：
-
-1. 檔案 → 選項 → 信任中心
-2. 信任中心設定
-3. 巨集設定 → 啟用所有巨集（建議僅在信任的文件中使用）
-
----
-
 ## 📞 建議使用情境
 
 | 情境 | 推薦版本 |
 |------|----------|
-| 僅使用 Windows | Windows VBA |
-| 僅使用 Mac | Mac VBA 或 Python |
-| 兩個平台都用 | **Python**（最推薦） |
-| 需要批次處理 | **Python** |
-| 不想安裝額外軟體 | VBA |
-| 需要進階自訂 | **Python** |
+| 第一次使用 | **GUI 版本** |
+| 快速建立簡報 | **GUI 版本** |
+| 批次處理多個檔案 | **命令列版本** |
+| 整合到自動化腳本 | **命令列版本** |
+| 需要進階自訂 | **命令列版本**（修改程式碼） |
 
 ---
 
 ## 🎉 開始使用
 
-1. 查看 `範例輸入文字.txt` 了解格式
-2. 根據您的平台選擇對應版本
-3. 按照「快速開始」的步驟操作
-4. 享受自動化簡報製作的便利！
+1. 查看 `examples/範例輸入文字.txt` 了解文字格式
+2. 安裝 Python 和必要套件：`pip install python-pptx`
+3. 選擇適合的版本：
+   - 初學者：使用 GUI 版本 `python text_to_ppt_gui.py`
+   - 開發者：使用命令列版本 `python text_to_ppt.py`
+4. 查看 `docs/` 資料夾獲取更多說明文件
+5. 享受自動化簡報製作的便利！
 
 **祝您使用愉快！** 🚀
+
+---
+
+## 📚 更多資源
+
+- [完整方案總覽](docs/README_完整方案總覽.md)
+- [Python 安裝指南](docs/Python_安裝指南.txt)
+- [GitHub Actions 打包教學](docs/GitHub_Actions_打包教學.md)
+- [使用說明](docs/使用說明.txt)
