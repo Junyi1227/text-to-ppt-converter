@@ -246,7 +246,7 @@ def main():
         print("=" * 70)
         print()
         print("使用方式：")
-        print("  python extract_blue_text_from_docx.py [Word檔案]")
+        print("  python 1_extract.py [Word檔案]")
         print()
         print("參數說明：")
         print("  Word檔案  - Word 文件路徑（預設：input.docx）")
@@ -262,16 +262,16 @@ def main():
         print("  提取文字顏色 = #FF0000        # 紅色（16進位）")
         print()
         print("範例：")
-        print("  python extract_blue_text_from_docx.py")
+        print("  python 1_extract.py")
         print("    → 從 input.docx 提取文字，輸出到 output.txt")
         print()
-        print("  python extract_blue_text_from_docx.py 20251231.docx")
+        print("  python 1_extract.py 20251231.docx")
         print("    → 從 20251231.docx 提取文字，輸出到 output.txt")
         print()
         print("=" * 70)
         print()
         print("💡 提取完成後，可直接執行：")
-        print("   python generate_ppt_from_template_v2.py")
+        print("   python 2_generate.py")
         print()
         sys.exit(0)
     
@@ -303,9 +303,9 @@ def main():
         print("-" * 50)
     
     # 儲存結果
-    if extractor.save_to_file(output_file, title):
+    if extractor.save_to_file(output_file):
         print(f"\n🎉 完成！現在可以執行：")
-        print(f"   python text_to_ppt.py {output_file}")
+        print(f"   python 2_generate.py")
 
 
 if __name__ == "__main__":
