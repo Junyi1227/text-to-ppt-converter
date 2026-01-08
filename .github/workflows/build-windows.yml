@@ -21,7 +21,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
+        python-version: '3.8'  # 使用 3.8 以支援 Windows 7
     
     - name: Install dependencies
       run: |
