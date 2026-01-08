@@ -1,218 +1,274 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-使用模板生成 PPT
-根據配置檔和藍色文字清單，生成完整的 PPT
+PPT 生成程式 V2 - 基於 template.pptx 的彈性化版本
+
+使用方式：
+    python generate_ppt_from_template_v2.py template.pptx input.txt config.txt output.pptx
+
+功能：
+    - 支援彈性化的頁面結構定義（透過 config）
+    - 支援變數模板（從 TXT 讀取）
+    - 自動識別經文格式
+    - 支援多種頁面類型：COVER, TITLE, CONTENT, BIBLE, AUTOCONTENT
 """
 
+import sys
+import re
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
-import sys
-import os
-import re
-from copy import deepcopy
 
 
-class PPTGenerator:
-    """PPT 生成器"""
+class PPTGeneratorV2:
+    """PPT 生成器 V2"""
     
-    def __init__(self, template_path):
-        """初始化，載入模板"""
-        self.template_path = template_path
+    def __init__(self, template_path, output_path):
+        """
+        初始化 PPT 生成器
+        
+        Args:
+            template_path: 模板 PPT 路徑（必須包含 4 頁）
+            output_path: 輸出 PPT 路徑
+        """
+        # 先複製 template 到 output
+        import shutil
+        shutil.copy2(template_path, output_path)
+        
+        # 開啟模板用於參考
         self.template = Presentation(template_path)
-        self.new_prs = Presentation(template_path)
+        # 開啟輸出檔案用於編輯
+        self.output_prs = Presentation(output_path)
+        self.output_path = output_path
         
-        # 清空新簡報（我們會手動複製需要的頁面）
-        while len(self.new_prs.slides) > 0:
-            rId = self.new_prs.slides._sldIdLst[0].rId
-            self.new_prs.part.drop_rel(rId)
-            del self.new_prs.slides._sldIdLst[0]
+        # 確認模板有 4 頁
+        if len(self.template.slides) < 4:
+            raise ValueError(f"模板必須包含至少 4 頁，目前只有 {len(self.template.slides)} 頁")
         
-        self.config = {}
-        self.blue_texts = []
+        # 刪除輸出檔案中的所有頁面（稍後重新添加）
+        slide_count = len(self.output_prs.slides)
+        for i in range(slide_count - 1, -1, -1):
+            rId = self.output_prs.slides._sldIdLst[i].rId
+            self.output_prs.part.drop_rel(rId)
+            del self.output_prs.slides._sldIdLst[i]
+        
+        # 變數字典
+        self.variables = {}
+        # 內容列表
+        self.content_lines = []
+        # 頁面結構
+        self.page_structure = []
+    
+    def load_variables_and_content(self, txt_path):
+        """
+        從 TXT 檔案讀取變數和內容
+        
+        Args:
+            txt_path: TXT 檔案路徑
+        """
+        with open(txt_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        
+        in_variables = False
+        in_content = False
+        
+        for line in lines:
+            line = line.rstrip('\n')
+            
+            # 檢查變數區開始
+            if line.strip() == '[變數]':
+                in_variables = True
+                continue
+            
+            # 檢查變數區結束
+            if line.strip() == '[變數結束]':
+                in_variables = False
+                in_content = True
+                continue
+            
+            # 讀取變數
+            if in_variables and '=' in line:
+                key, value = line.split('=', 1)
+                self.variables[key.strip()] = value.strip()
+            
+            # 讀取內容
+            elif in_content:
+                # 跳過空行（但保留用於分隔）
+                if line.strip():
+                    self.content_lines.append(line.strip())
+        
+        print(f"✅ 讀取變數: {len(self.variables)} 個")
+        print(f"✅ 讀取內容: {len(self.content_lines)} 行")
     
     def load_config(self, config_path):
-        """讀取配置檔（支援兩種格式：KEY: VALUE 或 KEY=VALUE）"""
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    # 跳過註解和空行
-                    if not line or line.startswith('#'):
-                        continue
-                    
-                    # 解析 KEY: VALUE 格式（舊格式）
-                    if ':' in line:
-                        key, value = line.split(':', 1)
-                        self.config[key.strip()] = value.strip()
-                    # 解析 KEY=VALUE 格式（新格式）
-                    elif '=' in line:
-                        key, value = line.split('=', 1)
-                        self.config[key.strip()] = value.strip()
+        """
+        從 config 檔案讀取頁面結構
+        
+        Args:
+            config_path: config 檔案路徑
+        """
+        with open(config_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        
+        in_structure = False
+        
+        for line in lines:
+            line = line.strip()
             
-            print(f"✅ 讀取配置檔：{len(self.config)} 個設定")
-            return True
-        
-        except Exception as e:
-            print(f"❌ 讀取配置檔錯誤：{e}")
-            return False
-    
-    def load_blue_texts(self, blue_text_path):
-        """讀取藍色文字清單（支援新格式：含 [變數] 區塊）"""
-        try:
-            with open(blue_text_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            # 跳過空行和註解
+            if not line or line.startswith('#'):
+                continue
             
-            # 檢查是否為新格式（含 [變數] 區塊）
-            if '[變數]' in content and '[變數結束]' in content:
-                # 分離變數區和內容區
-                parts = content.split('[變數結束]')
-                if len(parts) >= 2:
-                    var_section = parts[0].replace('[變數]', '').strip()
-                    content_section = parts[1].strip()
-                    
-                    # 解析變數區（支援 = 分隔）
-                    for line in var_section.split('\n'):
-                        line = line.strip()
-                        if '=' in line:
-                            key, value = line.split('=', 1)
-                            key = key.strip()
-                            value = value.strip()
-                            
-                            # 映射到舊的 config key 名稱
-                            key_mapping = {
-                                '日期': 'DATE',
-                                '禮拜類型': 'SERVICE_TYPE',
-                                '主題': 'TITLE',
-                                '經文章節': 'VERSE_REFS',
-                                '經文1': 'VERSE_1',
-                                '經文2': 'VERSE_2',
-                            }
-                            
-                            config_key = key_mapping.get(key, key)
-                            self.config[config_key] = value
-                            
-                            # 解析經文格式（提取章節和內容）
-                            if key == '經文1' or key == '經文2':
-                                verse_num = '1' if key == '經文1' else '2'
-                                # 格式：〈章節〉內容。
-                                import re
-                                match = re.match(r'^[〈<]([^〉>]+)[〉>]\s*(.+)$', value)
-                                if match:
-                                    self.config[f'VERSE_REF_{verse_num}'] = match.group(1).strip()
-                                    self.config[f'VERSE_TEXT_{verse_num}'] = match.group(2).strip()
-                    
-                    # 用空行分隔內容段落
-                    self.blue_texts = [para.strip() for para in content_section.split('\n\n') if para.strip()]
-                    
-                    print(f"✅ 讀取新格式：{len(self.config)} 個變數，{len(self.blue_texts)} 段內容")
-                    return True
+            # 檢查頁面結構區開始
+            if line == '[頁面結構]':
+                in_structure = True
+                continue
             
-            # 舊格式：直接用空行分隔
-            self.blue_texts = [para.strip() for para in content.split('\n\n') if para.strip()]
-            print(f"✅ 讀取藍色文字：{len(self.blue_texts)} 段")
-            return True
+            # 讀取頁面結構
+            if in_structure:
+                # 解析頁面類型和參數
+                if '=' in line:
+                    parts = line.split('=', 1)
+                    page_type = parts[0].strip()
+                    param = parts[1].strip()
+                    self.page_structure.append((page_type, param))
+                else:
+                    page_type = line.strip()
+                    self.page_structure.append((page_type, None))
         
-        except Exception as e:
-            print(f"❌ 讀取藍色文字錯誤：{e}")
-            return False
-    
-    def copy_slide(self, slide_index):
-        """複製指定投影片到新簡報"""
-        source_slide = self.template.slides[slide_index]
-        
-        # 複製投影片版面配置
-        slide_layout = source_slide.slide_layout
-        new_slide = self.new_prs.slides.add_slide(slide_layout)
-        
-        # 背景保持使用版面配置的背景，不手動複製
-        # （因為模板已經包含背景設定）
-        
-        # 複製所有形狀
-        for shape in source_slide.shapes:
-            self._copy_shape(shape, new_slide)
-        
-        return new_slide
-    
-    def _copy_shape(self, source_shape, target_slide):
-        """複製形狀到目標投影片"""
-        try:
-            # 複製文字框
-            if hasattr(source_shape, "text_frame"):
-                new_shape = target_slide.shapes.add_textbox(
-                    source_shape.left,
-                    source_shape.top,
-                    source_shape.width,
-                    source_shape.height
-                )
-                
-                # 複製文字內容和格式
-                for paragraph in source_shape.text_frame.paragraphs:
-                    if paragraph.text.strip():
-                        p = new_shape.text_frame.add_paragraph() if new_shape.text_frame.text else new_shape.text_frame.paragraphs[0]
-                        p.text = paragraph.text
-                        p.alignment = paragraph.alignment
-                        
-                        # 複製字體格式
-                        if paragraph.runs:
-                            source_run = paragraph.runs[0]
-                            for run in p.runs:
-                                if source_run.font.size:
-                                    run.font.size = source_run.font.size
-                                if source_run.font.bold:
-                                    run.font.bold = source_run.font.bold
-                                if source_run.font.name:
-                                    run.font.name = source_run.font.name
-                                if source_run.font.color and source_run.font.color.rgb:
-                                    run.font.color.rgb = source_run.font.color.rgb
-        
-        except Exception as e:
-            print(f"⚠️  複製形狀時發生錯誤：{e}")
-    
-    def replace_text_in_slide(self, slide, replacements):
-        """替換投影片中的文字"""
-        for shape in slide.shapes:
-            if hasattr(shape, "text_frame"):
-                for paragraph in shape.text_frame.paragraphs:
-                    for run in paragraph.runs:
-                        for old_text, new_text in replacements.items():
-                            if old_text in run.text:
-                                run.text = run.text.replace(old_text, new_text)
+        print(f"✅ 讀取頁面結構: {len(self.page_structure)} 頁")
     
     def is_verse_format(self, text):
-        """判斷是否為經文格式：〈章節〉 + 經文內容"""
-        import re
-        pattern = r'^[〈<]([^〉>]+)[〉>]\s*(.+)$'
-        match = re.match(pattern, text, re.DOTALL)
+        """
+        判斷是否為經文格式
+        支援兩種格式：
+        1. 單行：〈創19:17〉領他們出來...
+        2. 多行：第一行是章節，第二行是內容
+        
+        Args:
+            text: 要判斷的文字
+            
+        Returns:
+            Match object 如果匹配，否則 None
+        """
+        # 單行格式：〈章節〉內容
+        pattern = r'^[〈<]([^〉>]+)[〉>](.+)$'
+        match = re.match(pattern, text)
         return match
     
-    def convert_verse_reference(self, ref):
-        """轉換經文章節格式：〈創 19:17〉 → 【創19:17】"""
-        # 移除空格
-        ref = ref.replace(' ', '').replace('　', '')
-        # 轉換括號
-        ref = ref.replace('〈', '【').replace('〉', '】')
-        ref = ref.replace('<', '【').replace('>', '】')
-        return ref
+    def convert_verse_reference(self, verse_ref):
+        """
+        轉換經文章節格式
+        創19:17 → 創世記19章17節
+        箴言27章12節 → 箴言27章12節（不變）
+        
+        Args:
+            verse_ref: 原始章節格式
+            
+        Returns:
+            轉換後的章節格式
+        """
+        # 如果已經包含「章」「節」，直接返回
+        if '章' in verse_ref and '節' in verse_ref:
+            return verse_ref
+        
+        # 轉換簡化格式（例如：創19:17）
+        pattern = r'^([^0-9]+)(\d+):(\d+)$'
+        match = re.match(pattern, verse_ref)
+        
+        if match:
+            book = match.group(1)
+            chapter = match.group(2)
+            verse = match.group(3)
+            
+            # 書卷名稱轉換（如果需要）
+            book_map = {
+                '創': '創世記',
+                '出': '出埃及記',
+                '利': '利未記',
+                '民': '民數記',
+                '申': '申命記',
+                '書': '約書亞記',
+                '士': '士師記',
+                '得': '路得記',
+                '撒上': '撒母耳記上',
+                '撒下': '撒母耳記下',
+                '王上': '列王紀上',
+                '王下': '列王紀下',
+                '代上': '歷代志上',
+                '代下': '歷代志下',
+                '拉': '以斯拉記',
+                '尼': '尼希米記',
+                '斯': '以斯帖記',
+                '伯': '約伯記',
+                '詩': '詩篇',
+                '箴': '箴言',
+                '傳': '傳道書',
+                '歌': '雅歌',
+                '賽': '以賽亞書',
+                '耶': '耶利米書',
+                '哀': '耶利米哀歌',
+                '結': '以西結書',
+                '但': '但以理書',
+                '何': '何西阿書',
+                '珥': '約珥書',
+                '摩': '阿摩司書',
+                '俄': '俄巴底亞書',
+                '拿': '約拿書',
+                '彌': '彌迦書',
+                '鴻': '那鴻書',
+                '哈': '哈巴谷書',
+                '番': '西番雅書',
+                '該': '哈該書',
+                '亞': '撒迦利亞書',
+                '瑪': '瑪拉基書',
+                '太': '馬太福音',
+                '可': '馬可福音',
+                '路': '路加福音',
+                '約': '約翰福音',
+                '徒': '使徒行傳',
+                '羅': '羅馬書',
+                '林前': '哥林多前書',
+                '林後': '哥林多後書',
+                '加': '加拉太書',
+                '弗': '以弗所書',
+                '腓': '腓立比書',
+                '西': '歌羅西書',
+                '帖前': '帖撒羅尼迦前書',
+                '帖後': '帖撒羅尼迦後書',
+                '提前': '提摩太前書',
+                '提後': '提摩太後書',
+                '多': '提多書',
+                '門': '腓利門書',
+                '來': '希伯來書',
+                '雅': '雅各書',
+                '彼前': '彼得前書',
+                '彼後': '彼得後書',
+                '約壹': '約翰一書',
+                '約貳': '約翰二書',
+                '約參': '約翰三書',
+                '猶': '猶大書',
+                '啟': '啟示錄'
+            }
+            
+            full_book = book_map.get(book, book)
+            return f"{full_book}{chapter}章{verse}節"
+        
+        return verse_ref
     
-    def create_content_slide(self, text):
-        """建立內容投影片（使用模板中的內容頁作為參考）"""
-        # 選擇適當的模板頁
-        # 如果模板有8頁或以上，使用第8頁；否則使用第3頁（簡化版）
-        template_index = 7 if len(self.template.slides) > 7 else 2
-        if template_index < len(self.template.slides):
-            source_slide = self.template.slides[template_index]
-            slide_layout = source_slide.slide_layout
-        else:
-            # 如果連第3頁都沒有，使用第一個可用的版面配置
-            slide_layout = self.template.slide_layouts[0]
-            source_slide = None
+    def create_cover_page(self, subtitle=None):
+        """
+        建立封面頁（template 第 1 頁）
         
-        new_slide = self.new_prs.slides.add_slide(slide_layout)
+        Args:
+            subtitle: 小標題（可選）
+        """
+        source_slide = self.template.slides[0]
+        slide_layout = source_slide.slide_layout
+        new_slide = self.output_prs.slides.add_slide(slide_layout)
         
-        # 刪除所有從模板繼承的文字框（避免空白文字框殘留）
+        # 刪除所有從版面配置繼承的形狀
         shapes_to_remove = []
         for shape in new_slide.shapes:
             if hasattr(shape, "text_frame"):
@@ -222,26 +278,122 @@ class PPTGenerator:
             sp = shape.element
             sp.getparent().remove(sp)
         
-        # 檢查是否為經文格式
-        verse_match = self.is_verse_format(text)
+        # 從模板複製文字框並填入內容
+        for shape in source_slide.shapes:
+            if hasattr(shape, "text_frame"):
+                # 根據位置判斷是哪個文字框
+                # 文字框1: 日期+禮拜類型 (top ≈ 1.23")
+                # 文字框2: 小標題 (top ≈ 4.30")
+                # 文字框3: 經文章節 (top ≈ 3.40")
+                
+                if abs(shape.top.inches - 1.23) < 0.1:
+                    # 文字框1: 日期+禮拜類型
+                    date = self.variables.get('日期', '')
+                    service_type = self.variables.get('禮拜類型', '')
+                    text = f"{date}\n\n{service_type}"
+                    self._create_textbox_with_format(new_slide, shape, text)
+                
+                elif abs(shape.top.inches - 4.30) < 0.1:
+                    # 文字框2: 小標題（只有在有參數時才顯示）
+                    if subtitle:
+                        self._create_textbox_with_format(new_slide, shape, subtitle)
+                
+                elif abs(shape.top.inches - 3.40) < 0.1:
+                    # 文字框3: 經文章節
+                    verse_refs = self.variables.get('經文章節', '')
+                    self._create_textbox_with_format(new_slide, shape, verse_refs)
         
-        # 找到第一個文字框的位置和大小資訊
+        return new_slide
+    
+    def create_title_page(self, subtitle=None):
+        """
+        建立主題頁（template 第 2 頁）
+        
+        Args:
+            subtitle: 小標題（可選）
+        """
+        source_slide = self.template.slides[1]
+        slide_layout = source_slide.slide_layout
+        new_slide = self.output_prs.slides.add_slide(slide_layout)
+        
+        # 刪除所有從版面配置繼承的形狀
+        shapes_to_remove = []
+        for shape in new_slide.shapes:
+            if hasattr(shape, "text_frame"):
+                shapes_to_remove.append(shape)
+        
+        for shape in shapes_to_remove:
+            sp = shape.element
+            sp.getparent().remove(sp)
+        
+        # 從模板複製文字框並填入內容
+        for shape in source_slide.shapes:
+            if hasattr(shape, "text_frame"):
+                # 文字框1: 日期+禮拜類型 (top ≈ 0.51")
+                # 文字框2: 主題 (top ≈ 1.72")
+                # 文字框3: 經文章節 (top ≈ 3.76")
+                # 文字框4: 小標題 (top ≈ 4.46")
+                
+                if abs(shape.top.inches - 0.51) < 0.1:
+                    # 文字框1: 日期+禮拜類型
+                    date = self.variables.get('日期', '')
+                    service_type = self.variables.get('禮拜類型', '')
+                    text = f"{date} {service_type}"
+                    self._create_textbox_with_format(new_slide, shape, text)
+                
+                elif abs(shape.top.inches - 1.72) < 0.1:
+                    # 文字框2: 主題
+                    title = self.variables.get('主題', '')
+                    self._create_textbox_with_format(new_slide, shape, title)
+                
+                elif abs(shape.top.inches - 3.76) < 0.1:
+                    # 文字框3: 經文章節
+                    verse_refs = self.variables.get('經文章節', '')
+                    self._create_textbox_with_format(new_slide, shape, verse_refs)
+                
+                elif abs(shape.top.inches - 4.46) < 0.1:
+                    # 文字框4: 小標題（只有在有參數時才顯示）
+                    if subtitle:
+                        self._create_textbox_with_format(new_slide, shape, subtitle)
+        
+        return new_slide
+    
+    def create_content_page(self, text):
+        """
+        建立內文頁（template 第 3 頁）
+        
+        Args:
+            text: 內容文字
+        """
+        source_slide = self.template.slides[2]
+        slide_layout = source_slide.slide_layout
+        new_slide = self.output_prs.slides.add_slide(slide_layout)
+        
+        # 刪除所有從模板繼承的文字框
+        shapes_to_remove = []
+        for shape in new_slide.shapes:
+            if hasattr(shape, "text_frame"):
+                shapes_to_remove.append(shape)
+        
+        for shape in shapes_to_remove:
+            sp = shape.element
+            sp.getparent().remove(sp)
+        
+        # 找到第一個文字框的參考
         source_shape = None
-        if source_slide:
-            for shape in source_slide.shapes:
-                if hasattr(shape, "text_frame"):
-                    source_shape = shape
-                    break
+        for shape in source_slide.shapes:
+            if hasattr(shape, "text_frame"):
+                source_shape = shape
+                break
         
         if source_shape:
             # 調整文字框位置，確保在版面內
-            # 使用安全的邊距：左右各 0.5 英吋，上下各 0.3 英吋
             safe_left = Inches(0.5)
             safe_top = Inches(0.3)
-            safe_width = Inches(9.0)  # 10 - 0.5*2 = 9
-            safe_height = Inches(5.0)  # 5.625 - 0.3*2 ≈ 5
+            safe_width = Inches(9.0)
+            safe_height = Inches(5.0)
             
-            # 建立新的文字框（使用安全範圍）
+            # 建立新的文字框
             new_shape = new_slide.shapes.add_textbox(
                 safe_left,
                 safe_top,
@@ -253,220 +405,311 @@ class PPTGenerator:
             new_shape.text_frame.clear()
             
             # 設定文字框屬性
-            new_shape.text_frame.word_wrap = True  # 自動換行
-            new_shape.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE  # 垂直居中對齊
-            new_shape.text_frame.auto_size = MSO_AUTO_SIZE.NONE  # 不自動調整大小（避免超出螢幕）
+            new_shape.text_frame.word_wrap = True
+            new_shape.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+            new_shape.text_frame.auto_size = MSO_AUTO_SIZE.NONE
             
-            if verse_match:
-                # 經文格式：兩個段落，不同顏色
-                verse_ref = verse_match.group(1)
-                verse_text = verse_match.group(2).strip()
-                
-                # 轉換章節格式
-                verse_ref_formatted = self.convert_verse_reference(verse_ref)
-                
-                # 第一段：經文章節（淺藍色）
-                p1 = new_shape.text_frame.paragraphs[0]
-                p1.text = verse_ref_formatted
-                for run in p1.runs:
-                    run.font.size = Pt(30)
-                    run.font.bold = True
-                    run.font.name = "微軟正黑體"
-                    run.font.color.rgb = RGBColor(121, 155, 193)  # 淺藍色
-                
-                # 第二段：經文內容（深藍色）
-                p2 = new_shape.text_frame.add_paragraph()
-                p2.text = verse_text
-                for run in p2.runs:
-                    run.font.size = Pt(30)
-                    run.font.bold = True
-                    run.font.name = "微軟正黑體"
-                    run.font.color.rgb = RGBColor(27, 54, 106)  # 深藍色
+            # 設定內容
+            p = new_shape.text_frame.paragraphs[0]
+            p.text = text
             
-            else:
-                # 一般文字：單一段落
-                p = new_shape.text_frame.paragraphs[0]
-                p.text = text
+            # 複製格式
+            if source_shape.text_frame.paragraphs:
+                source_p = source_shape.text_frame.paragraphs[0]
+                p.alignment = source_p.alignment
                 
-                # 複製格式（從模板）
-                if source_shape.text_frame.paragraphs:
-                    source_p = source_shape.text_frame.paragraphs[0]
-                    p.alignment = source_p.alignment
-                    
-                    # 複製字體格式
-                    if source_p.runs:
-                        source_run = source_p.runs[0]
-                        for target_run in p.runs:
-                            if source_run.font.size:
-                                target_run.font.size = source_run.font.size
-                            if source_run.font.bold:
-                                target_run.font.bold = source_run.font.bold
-                            if source_run.font.name:
-                                target_run.font.name = source_run.font.name
-                            if source_run.font.color and source_run.font.color.rgb:
-                                target_run.font.color.rgb = source_run.font.color.rgb
+                if source_p.runs:
+                    source_run = source_p.runs[0]
+                    for target_run in p.runs:
+                        if source_run.font.size:
+                            target_run.font.size = source_run.font.size
+                        if source_run.font.bold:
+                            target_run.font.bold = source_run.font.bold
+                        if source_run.font.name:
+                            target_run.font.name = source_run.font.name
+                        if source_run.font.color and source_run.font.color.rgb:
+                            target_run.font.color.rgb = source_run.font.color.rgb
         
         return new_slide
     
-    def generate(self, output_path):
-        """生成完整 PPT（適配不同模板）"""
-        print("\n" + "=" * 70)
-        print("🎨 開始生成 PPT")
-        print("=" * 70)
+    def create_verse_page(self, verse_ref, verse_text):
+        """
+        建立經文頁（template 第 4 頁）
         
-        template_slides_count = len(self.template.slides)
-        print(f"📄 模板頁數: {template_slides_count}")
+        Args:
+            verse_ref: 經文章節
+            verse_text: 經文內容
+        """
+        source_slide = self.template.slides[3]
+        slide_layout = source_slide.slide_layout
+        new_slide = self.output_prs.slides.add_slide(slide_layout)
         
-        # 準備替換字典
-        replacements = {
-            '2025年12月31日': self.config.get('DATE', '2025年12月31日'),
-            '週三禮拜': self.config.get('SERVICE_TYPE', '週三禮拜'),
-            '要避開才能活 ': self.config.get('TITLE', '要避開才能活 '),
-            '要避開才能活  這就是天的法則': self.config.get('TITLE', '要避開才能活 這就是天的法則'),
-            '這就是天的法則': '這就是天的法則',  # 保留副標題
-            '【箴言27章12節、詩篇46篇1節】': f"【{self.config.get('VERSE_REFS', '箴言27章12節、詩篇46篇1節')}】",
-        }
+        # 刪除所有從模板繼承的文字框
+        shapes_to_remove = []
+        for shape in new_slide.shapes:
+            if hasattr(shape, "text_frame"):
+                shapes_to_remove.append(shape)
         
-        if template_slides_count == 4:
-            # 簡化版模板（4頁）：封面、主題頁、範例內容頁x2
-            print("\n📝 使用簡化版模板（4頁）")
-            
-            # 1. 複製第1頁（封面）
-            print("\n📄 建立封面...")
-            slide = self.copy_slide(0)
-            self.replace_text_in_slide(slide, replacements)
-            
-            # 2. 複製第2頁（主題頁）
-            print("📄 建立主題頁...")
-            slide = self.copy_slide(1)
-            self.replace_text_in_slide(slide, replacements)
-            
-            # 3. 使用第3頁作為內容頁模板，為每段藍色文字創建頁面
-            print(f"\n📝 建立內容頁面（{len(self.blue_texts)} 頁）...")
-            for i, text in enumerate(self.blue_texts, 1):
-                print(f"   建立第 {2+i} 頁：{text[:30]}...")
-                self.create_content_slide(text)
-            
-            # 4. 複製最後一頁（結束頁，如果需要）
-            print("\n📄 建立結束頁...")
-            slide = self.copy_slide(1)  # 複製主題頁作為結束頁
-            self.replace_text_in_slide(slide, replacements)
+        for shape in shapes_to_remove:
+            sp = shape.element
+            sp.getparent().remove(sp)
         
-        else:
-            # 完整版模板（29頁）
-            print("\n📝 使用完整版模板（29頁）")
-            
-            # 1. 複製並修改前7張固定頁面
-            print("\n📄 建立固定頁面（第 1-7 頁）...")
-            for i in range(min(7, template_slides_count)):
-                print(f"   複製第 {i+1} 頁...")
-                slide = self.copy_slide(i)
-                self.replace_text_in_slide(slide, replacements)
-                
-                # 特殊處理第5、6頁（經文內容）
-                if i == 4:  # 第5頁
-                    verse_ref = self.config.get('VERSE_REF_1', '')
-                    verse_text = self.config.get('VERSE_TEXT_1', '')
-                    if verse_ref and verse_text:
-                        self.replace_text_in_slide(slide, {
-                            '【箴言27章12節】': f'【{verse_ref}】',
-                            '通達人見禍藏躲；愚蒙人前往受害。': verse_text
-                        })
-                
-                elif i == 5:  # 第6頁
-                    verse_ref = self.config.get('VERSE_REF_2', '')
-                    verse_text = self.config.get('VERSE_TEXT_2', '')
-                    if verse_ref and verse_text:
-                        self.replace_text_in_slide(slide, {
-                            '【詩篇46篇1節】': f'【{verse_ref}】',
-                            ' 神是我們的避難所，是我們的力量，是我們': verse_text
-                        })
-            
-            # 2. 建立藍色文字內容頁（第8頁開始）
-            print(f"\n📝 建立內容頁面（第 8-{7+len(self.blue_texts)} 頁）...")
-            for i, text in enumerate(self.blue_texts, 1):
-                print(f"   建立第 {7+i} 頁：{text[:30]}...")
-                self.create_content_slide(text)
-            
-            # 3. 複製最後2張固定頁面
-            print("\n📄 建立結束頁面（最後 2 頁）...")
-            for i in [-2, -1]:
-                slide_num = len(self.template.slides) + i
-                print(f"   複製第 {slide_num+1} 頁...")
-                slide = self.copy_slide(slide_num)
-                self.replace_text_in_slide(slide, replacements)
+        # 找到第一個文字框的參考
+        source_shape = None
+        for shape in source_slide.shapes:
+            if hasattr(shape, "text_frame"):
+                source_shape = shape
+                break
         
-        # 4. 儲存
-        print(f"\n💾 儲存 PPT...")
-        try:
-            self.new_prs.save(output_path)
-            print(f"✅ 成功建立：{output_path}")
-            print(f"📊 總共 {len(self.new_prs.slides)} 張投影片")
-            return True
+        if source_shape:
+            # 調整文字框位置
+            safe_left = Inches(0.5)
+            safe_top = Inches(0.3)
+            safe_width = Inches(9.0)
+            safe_height = Inches(5.0)
+            
+            # 建立新的文字框
+            new_shape = new_slide.shapes.add_textbox(
+                safe_left,
+                safe_top,
+                safe_width,
+                safe_height
+            )
+            
+            # 清空預設文字
+            new_shape.text_frame.clear()
+            
+            # 設定文字框屬性
+            new_shape.text_frame.word_wrap = True
+            new_shape.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+            new_shape.text_frame.auto_size = MSO_AUTO_SIZE.NONE
+            
+            # 轉換章節格式
+            verse_ref_formatted = self.convert_verse_reference(verse_ref)
+            
+            # 第一段：經文章節（淺藍色）
+            p1 = new_shape.text_frame.paragraphs[0]
+            p1.text = verse_ref_formatted
+            for run in p1.runs:
+                run.font.size = Pt(30)
+                run.font.bold = True
+                run.font.name = "微軟正黑體"
+                run.font.color.rgb = RGBColor(121, 155, 193)  # 淺藍色
+            
+            # 第二段：經文內容（深藍色）
+            p2 = new_shape.text_frame.add_paragraph()
+            p2.text = verse_text
+            for run in p2.runs:
+                run.font.size = Pt(30)
+                run.font.bold = True
+                run.font.name = "微軟正黑體"
+                run.font.color.rgb = RGBColor(27, 54, 106)  # 深藍色
         
-        except Exception as e:
-            print(f"❌ 儲存錯誤：{e}")
-            return False
+        return new_slide
+    
+    def _create_textbox_with_format(self, slide, source_shape, text):
+        """
+        創建文字框並複製格式
+        
+        Args:
+            slide: 目標投影片
+            source_shape: 來源形狀（用於複製位置和格式）
+            text: 要填入的文字
+        """
+        # 創建新文字框
+        new_shape = slide.shapes.add_textbox(
+            source_shape.left,
+            source_shape.top,
+            source_shape.width,
+            source_shape.height
+        )
+        
+        # 設定文字
+        new_shape.text = text
+        
+        # 複製文字框屬性
+        new_shape.text_frame.word_wrap = source_shape.text_frame.word_wrap
+        new_shape.text_frame.vertical_anchor = source_shape.text_frame.vertical_anchor
+        
+        # 複製文字格式
+        if source_shape.text_frame.paragraphs and new_shape.text_frame.paragraphs:
+            source_p = source_shape.text_frame.paragraphs[0]
+            target_p = new_shape.text_frame.paragraphs[0]
+            
+            # 複製段落對齊
+            target_p.alignment = source_p.alignment
+            
+            # 複製字體格式
+            if source_p.runs and target_p.runs:
+                source_run = source_p.runs[0]
+                for target_run in target_p.runs:
+                    if source_run.font.size:
+                        target_run.font.size = source_run.font.size
+                    if source_run.font.bold is not None:
+                        target_run.font.bold = source_run.font.bold
+                    if source_run.font.name:
+                        target_run.font.name = source_run.font.name
+                    if source_run.font.color and source_run.font.color.rgb:
+                        target_run.font.color.rgb = source_run.font.color.rgb
+        
+        return new_shape
+    
+    def _copy_text_format(self, source_shape, target_shape):
+        """
+        複製文字格式
+        
+        Args:
+            source_shape: 來源形狀
+            target_shape: 目標形狀
+        """
+        if not source_shape.text_frame.paragraphs or not target_shape.text_frame.paragraphs:
+            return
+        
+        source_p = source_shape.text_frame.paragraphs[0]
+        target_p = target_shape.text_frame.paragraphs[0]
+        
+        # 複製段落對齊
+        target_p.alignment = source_p.alignment
+        
+        # 複製字體格式
+        if source_p.runs and target_p.runs:
+            source_run = source_p.runs[0]
+            for target_run in target_p.runs:
+                if source_run.font.size:
+                    target_run.font.size = source_run.font.size
+                if source_run.font.bold is not None:
+                    target_run.font.bold = source_run.font.bold
+                if source_run.font.name:
+                    target_run.font.name = source_run.font.name
+                if source_run.font.color and source_run.font.color.rgb:
+                    target_run.font.color.rgb = source_run.font.color.rgb
+    
+    def generate(self):
+        """
+        根據頁面結構生成 PPT
+        """
+        content_index = 0  # 追蹤 AUTOCONTENT 的當前索引
+        
+        for page_type, param in self.page_structure:
+            print(f"生成頁面: {page_type}" + (f" = {param}" if param else ""))
+            
+            if page_type == "COVER":
+                # 封面頁
+                self.create_cover_page(subtitle=param)
+            
+            elif page_type == "TITLE":
+                # 主題頁
+                self.create_title_page(subtitle=param)
+            
+            elif page_type == "CONTENT":
+                # 內文頁（固定內容）
+                if param:
+                    self.create_content_page(param)
+            
+            elif page_type == "BIBLE":
+                # 經文頁（讀取變數區的經文1, 經文2, ...）
+                verse_num = 1
+                while True:
+                    verse_key = f"經文{verse_num}"
+                    if verse_key not in self.variables:
+                        break
+                    
+                    verse_data = self.variables[verse_key]
+                    # 用 〉 分隔章節和內容
+                    if '〉' in verse_data:
+                        verse_ref, verse_text = verse_data.split('〉', 1)
+                        verse_ref = verse_ref.lstrip('〈<')
+                        verse_text = verse_text.strip()
+                        
+                        print(f"  生成經文頁 {verse_num}: {verse_ref}")
+                        self.create_verse_page(verse_ref, verse_text)
+                    
+                    verse_num += 1
+            
+            elif page_type == "AUTOCONTENT":
+                # 自動內容頁（從內容區讀取）
+                while content_index < len(self.content_lines):
+                    line = self.content_lines[content_index]
+                    content_index += 1
+                    
+                    # 檢查是否為經文格式（單行）
+                    verse_match = self.is_verse_format(line)
+                    if verse_match:
+                        verse_ref = verse_match.group(1)
+                        verse_text = verse_match.group(2).strip()
+                        print(f"  生成經文頁: {verse_ref}")
+                        self.create_verse_page(verse_ref, verse_text)
+                    else:
+                        # 檢查是否為多行經文格式（章節在一行，內容在下一行）
+                        if line.startswith('〈') or line.startswith('<'):
+                            verse_ref = line.lstrip('〈<').rstrip('〉>')
+                            # 讀取下一行作為內容
+                            if content_index < len(self.content_lines):
+                                verse_text = self.content_lines[content_index]
+                                content_index += 1
+                                print(f"  生成經文頁: {verse_ref}")
+                                self.create_verse_page(verse_ref, verse_text)
+                            else:
+                                # 沒有下一行，當作一般內容
+                                print(f"  生成內文頁")
+                                self.create_content_page(line)
+                        else:
+                            # 一般內容
+                            print(f"  生成內文頁")
+                            self.create_content_page(line)
+        
+        # 儲存 PPT
+        self.output_prs.save(self.output_path)
+        print(f"\n✅ PPT 生成完成！")
+        print(f"📊 總共生成 {len(self.output_prs.slides)} 張投影片")
+        print(f"💾 已儲存到：{self.output_path}")
 
 
 def main():
     """主程式"""
-    # 參數 1：模板 PPT（可選，預設 template.pptx）
-    template_file = sys.argv[1] if len(sys.argv) >= 2 else "template.pptx"
-    
-    # 參數 2：含變數的 TXT（可選，預設 output.txt）
-    blue_text_file = sys.argv[2] if len(sys.argv) >= 3 else "output.txt"
-    
-    # 參數 3：輸出 PPT（可選，預設 output.pptx）
-    output_file = sys.argv[3] if len(sys.argv) >= 4 else "output.pptx"
-    
-    # 顯示使用說明（如果沒有任何參數）
-    if len(sys.argv) == 1:
-        print("📊 PPT 生成工具（模板式）")
-        print("=" * 70)
-        print()
+    if len(sys.argv) != 5:
         print("使用方式：")
-        print("  python generate_ppt_from_template.py [模板.pptx] [輸入.txt] [輸出.pptx]")
+        print("  python generate_ppt_from_template_v2.py template.pptx input.txt config.txt output.pptx")
         print()
-        print("預設值：")
-        print("  模板.pptx = template.pptx")
-        print("  輸入.txt  = output.txt")
-        print("  輸出.pptx = output.pptx")
-        print()
-        print("範例：")
-        print("  python generate_ppt_from_template.py")
-        print("    → 使用 template.pptx + output.txt → 生成 output.pptx")
-        print()
-        print("  python generate_ppt_from_template.py template.pptx sermon.txt")
-        print("    → 使用 template.pptx + sermon.txt → 生成 output.pptx")
-        print()
-        print("  python generate_ppt_from_template.py template.pptx output.txt final.pptx")
-        print("    → 使用 template.pptx + output.txt → 生成 final.pptx")
-        print()
-        print("=" * 70)
-        print()
-        print("💡 TXT 格式說明：")
-        print("   支援新格式（含 [變數] 區塊）和舊格式（純內容）")
-        print()
-        sys.exit(0)
-    
-    # 檢查檔案是否存在
-    for file_path in [template_file, blue_text_file]:
-        if not os.path.exists(file_path):
-            print(f"❌ 找不到檔案：{file_path}")
-            sys.exit(1)
-    
-    # 生成 PPT（新格式：從TXT中讀取變數和內容）
-    generator = PPTGenerator(template_file)
-    
-    if not generator.load_blue_texts(blue_text_file):
+        print("參數說明：")
+        print("  template.pptx  - 模板 PPT（必須包含 4 頁）")
+        print("  input.txt      - 輸入文字檔（包含變數和內容）")
+        print("  config.txt     - 設定檔（定義頁面結構）")
+        print("  output.pptx    - 輸出 PPT 檔名")
         sys.exit(1)
     
-    if generator.generate(output_file):
-        print("\n" + "=" * 70)
-        print("🎉 完成！")
-        print("=" * 70)
-    else:
+    template_path = sys.argv[1]
+    input_path = sys.argv[2]
+    config_path = sys.argv[3]
+    output_path = sys.argv[4]
+    
+    print("=" * 60)
+    print("PPT 生成程式 V2")
+    print("=" * 60)
+    print(f"模板檔案：{template_path}")
+    print(f"輸入文字：{input_path}")
+    print(f"設定檔案：{config_path}")
+    print(f"輸出檔案：{output_path}")
+    print("=" * 60)
+    print()
+    
+    try:
+        # 建立生成器（會先複製 template 到 output）
+        generator = PPTGeneratorV2(template_path, output_path)
+        
+        # 載入變數和內容
+        generator.load_variables_and_content(input_path)
+        
+        # 載入設定
+        generator.load_config(config_path)
+        
+        # 生成 PPT
+        generator.generate()
+        
+    except Exception as e:
+        print(f"❌ 錯誤：{e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 
