@@ -4,21 +4,43 @@
 
 ## 📦 多種工具版本
 
-### 🖥️ GUI 版本（推薦一般使用者）
+### 🆕 模板式 PPT 生成系統 V2（最新！推薦）
+- **檔案**: `generate_ppt_from_template_v2.py`
+- **優點**: 彈性化頁面結構，基於 4 頁模板自動生成完整簡報
+- **功能**: 
+  - 支援變數模板（日期、禮拜類型、主題、經文等）
+  - 彈性定義頁面順序和類型
+  - 自動識別經文格式
+  - 支援封面頁、主題頁、內文頁、經文頁
+- **使用**: 
+  ```bash
+  # 步驟 1: 從 Word 提取藍色文字
+  python extract_blue_text_from_docx.py input.docx output.txt
+  
+  # 步驟 2: 編輯 output.txt 填入變數
+  
+  # 步驟 3: 創建 config.txt 定義頁面結構
+  
+  # 步驟 4: 生成 PPT
+  python generate_ppt_from_template_v2.py template.pptx output.txt config.txt final.pptx
+  ```
+- **詳細說明**: 請參閱 [`使用說明_V2.md`](使用說明_V2.md)
+
+### 📘 Word 轉 PPT 版本
+- **檔案**: `docx_to_ppt.py` / `extract_blue_text_from_docx.py`
+- **優點**: 從 Word 文件提取藍色文字
+- **功能**: 自動識別藍色標記的重點內容
+- **使用**: `python extract_blue_text_from_docx.py 文件.docx output.txt`
+
+### 🖥️ GUI 版本（基礎版）
 - **檔案**: `text_to_ppt_gui.py`
 - **優點**: 圖形化介面，操作簡單直覺
 - **功能**: 文字輸入或檔案選擇，即時預覽
 
-### ⌨️ 命令列版本（推薦開發者）
+### ⌨️ 命令列版本（基礎版）
 - **檔案**: `text_to_ppt.py`
 - **優點**: 適合批次處理和自動化
 - **功能**: 命令列執行，支援腳本整合
-
-### 📘 Word 轉 PPT 版本（新功能！）
-- **檔案**: `docx_to_ppt.py`
-- **優點**: 從 Word 文件提取藍色文字，一鍵轉換成 PPT
-- **功能**: 自動識別藍色標記的重點內容
-- **使用**: `python docx_to_ppt.py 文件.docx`
 
 **系統需求**: Python 3.6+、python-pptx、python-docx
 

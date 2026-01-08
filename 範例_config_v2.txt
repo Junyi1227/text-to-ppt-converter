@@ -1,0 +1,22 @@
+# PPT 頁面結構設定檔 V2
+
+# 頁面類型說明：
+# COVER           - 封面頁（不顯示小標題）
+# COVER = 小標題  - 封面頁（顯示小標題）
+# TITLE           - 主題頁（不顯示小標題）
+# TITLE = 小標題  - 主題頁（顯示小標題）
+# CONTENT = 內容  - 內文頁（固定內容）
+# BIBLE           - 經文頁（從變數區讀取經文1, 經文2, ...）
+# AUTOCONTENT     - 自動內容頁（從內容區依序讀取，自動識別格式）
+
+[頁面結構]
+COVER = 20:00開始讚美∣請以禱告預備
+COVER
+CONTENT = 代表禱告
+CONTENT = 聖經奉讀
+BIBLE
+COVER
+TITLE
+AUTOCONTENT
+TITLE
+TITLE = 報告稍後開始
