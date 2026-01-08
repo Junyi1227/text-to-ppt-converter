@@ -367,56 +367,22 @@ class PPTGeneratorV2:
         slide_layout = template_slide.slide_layout
         new_slide = self.output_prs.slides.add_slide(slide_layout)
         
-        # 找到模板頁的第一個文字框
-        source_shape = None
+        # 刪除從版面配置繼承的空文字框
+        shapes_to_remove = []
+        for shape in new_slide.shapes:
+            if hasattr(shape, "text_frame") and not shape.text.strip():
+                shapes_to_remove.append(shape)
+        
+        for shape in shapes_to_remove:
+            sp = shape.element
+            sp.getparent().remove(sp)
+        
+        # 找到模板頁的第一個文字框並複製
         for shape in template_slide.shapes:
             if hasattr(shape, "text_frame"):
-                source_shape = shape
+                # 使用模板的位置和大小（不要寫死）
+                self._create_textbox_with_format(new_slide, shape, text)
                 break
-        
-        if source_shape:
-            # 調整文字框位置，確保在版面內
-            safe_left = Inches(0.5)
-            safe_top = Inches(0.3)
-            safe_width = Inches(9.0)
-            safe_height = Inches(5.0)
-            
-            # 建立新的文字框
-            new_shape = new_slide.shapes.add_textbox(
-                safe_left,
-                safe_top,
-                safe_width,
-                safe_height
-            )
-            
-            # 清空預設文字
-            new_shape.text_frame.clear()
-            
-            # 設定文字框屬性
-            new_shape.text_frame.word_wrap = True
-            new_shape.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
-            new_shape.text_frame.auto_size = MSO_AUTO_SIZE.NONE
-            
-            # 設定內容
-            p = new_shape.text_frame.paragraphs[0]
-            p.text = text
-            
-            # 複製格式
-            if source_shape.text_frame.paragraphs:
-                source_p = source_shape.text_frame.paragraphs[0]
-                p.alignment = source_p.alignment
-                
-                if source_p.runs:
-                    source_run = source_p.runs[0]
-                    for target_run in p.runs:
-                        if source_run.font.size:
-                            target_run.font.size = source_run.font.size
-                        if source_run.font.bold:
-                            target_run.font.bold = source_run.font.bold
-                        if source_run.font.name:
-                            target_run.font.name = source_run.font.name
-                        if source_run.font.color and source_run.font.color.rgb:
-                            target_run.font.color.rgb = source_run.font.color.rgb
         
         return new_slide
     
@@ -433,6 +399,16 @@ class PPTGeneratorV2:
         slide_layout = template_slide.slide_layout
         new_slide = self.output_prs.slides.add_slide(slide_layout)
         
+        # 刪除從版面配置繼承的空文字框
+        shapes_to_remove = []
+        for shape in new_slide.shapes:
+            if hasattr(shape, "text_frame") and not shape.text.strip():
+                shapes_to_remove.append(shape)
+        
+        for shape in shapes_to_remove:
+            sp = shape.element
+            sp.getparent().remove(sp)
+        
         # 找到模板頁的第一個文字框
         source_shape = None
         for shape in template_slide.shapes:
@@ -441,48 +417,83 @@ class PPTGeneratorV2:
                 break
         
         if source_shape:
-            # 調整文字框位置
-            safe_left = Inches(0.5)
-            safe_top = Inches(0.3)
-            safe_width = Inches(9.0)
-            safe_height = Inches(5.0)
-            
-            # 建立新的文字框
+            # 使用模板的位置和大小（不要寫死）
             new_shape = new_slide.shapes.add_textbox(
-                safe_left,
-                safe_top,
-                safe_width,
-                safe_height
+                source_shape.left,
+                source_shape.top,
+                source_shape.width,
+                source_shape.height
             )
             
             # 清空預設文字
             new_shape.text_frame.clear()
             
-            # 設定文字框屬性
-            new_shape.text_frame.word_wrap = True
-            new_shape.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
-            new_shape.text_frame.auto_size = MSO_AUTO_SIZE.NONE
+            # 複製文字框屬性
+            new_shape.text_frame.word_wrap = source_shape.text_frame.word_wrap
+            new_shape.text_frame.vertical_anchor = source_shape.text_frame.vertical_anchor
+            new_shape.text_frame.auto_size = source_shape.text_frame.auto_size
             
             # 轉換章節格式
             verse_ref_formatted = self.convert_verse_reference(verse_ref)
             
-            # 第一段：經文章節（淺藍色）
+            # 第一段：經文章節（從模板複製格式）
             p1 = new_shape.text_frame.paragraphs[0]
             p1.text = verse_ref_formatted
-            for run in p1.runs:
-                run.font.size = Pt(30)
-                run.font.bold = True
-                run.font.name = "微軟正黑體"
-                run.font.color.rgb = RGBColor(121, 155, 193)  # 淺藍色
             
-            # 第二段：經文內容（深藍色）
+            # 複製第一段格式（如果模板有的話）
+            if source_shape.text_frame.paragraphs:
+                source_p = source_shape.text_frame.paragraphs[0]
+                p1.alignment = source_p.alignment
+                
+                if source_p.runs:
+                    source_run = source_p.runs[0]
+                    for run in p1.runs:
+                        if source_run.font.size:
+                            run.font.size = source_run.font.size
+                        if source_run.font.bold is not None:
+                            run.font.bold = source_run.font.bold
+                        if source_run.font.name:
+                            run.font.name = source_run.font.name
+                        # 經文章節使用淺藍色
+                        run.font.color.rgb = RGBColor(121, 155, 193)
+            
+            # 第二段：經文內容
             p2 = new_shape.text_frame.add_paragraph()
             p2.text = verse_text
-            for run in p2.runs:
-                run.font.size = Pt(30)
-                run.font.bold = True
-                run.font.name = "微軟正黑體"
-                run.font.color.rgb = RGBColor(27, 54, 106)  # 深藍色
+            
+            # 複製第二段格式（如果模板有多個段落的話）
+            if len(source_shape.text_frame.paragraphs) > 1:
+                source_p2 = source_shape.text_frame.paragraphs[1]
+                p2.alignment = source_p2.alignment
+                
+                if source_p2.runs:
+                    source_run2 = source_p2.runs[0]
+                    for run in p2.runs:
+                        if source_run2.font.size:
+                            run.font.size = source_run2.font.size
+                        if source_run2.font.bold is not None:
+                            run.font.bold = source_run2.font.bold
+                        if source_run2.font.name:
+                            run.font.name = source_run2.font.name
+                        # 經文內容使用深藍色
+                        run.font.color.rgb = RGBColor(27, 54, 106)
+            else:
+                # 如果模板只有一段，使用第一段的格式
+                if source_shape.text_frame.paragraphs:
+                    source_p = source_shape.text_frame.paragraphs[0]
+                    p2.alignment = source_p.alignment
+                    
+                    if source_p.runs:
+                        source_run = source_p.runs[0]
+                        for run in p2.runs:
+                            if source_run.font.size:
+                                run.font.size = source_run.font.size
+                            if source_run.font.bold is not None:
+                                run.font.bold = source_run.font.bold
+                            if source_run.font.name:
+                                run.font.name = source_run.font.name
+                            # 經文內容使用深藍色
+                            run.font.color.rgb = RGBColor(27, 54, 106)
         
         return new_slide
     
@@ -509,6 +520,7 @@ class PPTGeneratorV2:
         # 複製文字框屬性
         new_shape.text_frame.word_wrap = source_shape.text_frame.word_wrap
         new_shape.text_frame.vertical_anchor = source_shape.text_frame.vertical_anchor
+        new_shape.text_frame.auto_size = source_shape.text_frame.auto_size
         
         # 複製文字格式
         if source_shape.text_frame.paragraphs and new_shape.text_frame.paragraphs:
