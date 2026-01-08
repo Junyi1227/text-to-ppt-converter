@@ -1,9 +1,0 @@
-[頁面結構]
-COVER = 20:00開始讚美∣請以禱告預備
-CONTENT = 代表禱告
-CONTENT = 聖經奉讀
-BIBLE
-COVER
-TITLE
-AUTOCONTENT
-TITLE = 報告稍後開始
