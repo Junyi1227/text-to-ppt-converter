@@ -65,18 +65,23 @@ def main():
     print(f"   ✅ 找到 {len(extractor.extracted_text)} 段藍色文字")
     print()
     
-    # 步驟 2：格式化文字
-    print("✏️  步驟 2/3：格式化文字為 PPT 格式...")
-    formatted_text = extractor.format_for_ppt(title)
-    print(f"   ✅ 格式化完成")
+    # 步驟 2：儲存為 TXT（含變數模板）
+    print("✏️  步驟 2/3：儲存為 TXT 格式（含變數模板）...")
+    temp_txt = f"{os.path.splitext(output_ppt)[0]}_temp.txt"
+    extractor.save_to_file(temp_txt, title)
+    print(f"   ✅ 已儲存到：{temp_txt}")
     print()
     
-    # 步驟 3：轉換成 PPT
-    print("📊 步驟 3/3：建立 PowerPoint 簡報...")
+    # 步驟 3：使用模板生成 PPT
+    print("📊 步驟 3/3：使用模板生成 PowerPoint 簡報...")
     print(f"   目標：{output_ppt}")
-    converter = TextToPPTConverter()
-    converter.convert_from_text(formatted_text)
-    converter.save(output_ppt)
+    print()
+    print("⚠️  注意：請手動編輯變數區塊後，使用以下指令生成 PPT：")
+    print(f"   python generate_ppt_from_template.py template.pptx {temp_txt} {output_ppt}")
+    print()
+    print("💡 或使用舊版直接轉換（不含變數）：")
+    print(f"   python text_to_ppt.py {temp_txt} {output_ppt}")
+    return
     print()
     
     print("=" * 60)

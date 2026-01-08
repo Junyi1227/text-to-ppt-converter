@@ -130,21 +130,31 @@ class BlueTextExtractor:
     
     def save_to_file(self, output_path, title="簡報標題"):
         """
-        儲存提取的文字到檔案
+        儲存提取的文字到檔案（包含變數模板）
         
         Args:
             output_path: 輸出檔案路徑
             title: 主標題
         """
-        formatted_text = self.format_for_ppt(title)
-        
-        if not formatted_text:
+        if not self.extracted_text:
             print("⚠️  沒有找到藍色文字")
             return False
         
         try:
             with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(formatted_text)
+                # 寫入變數模板
+                f.write("[變數]\n")
+                f.write("日期=2026年1月1日\n")
+                f.write("禮拜類型=週三禮拜\n")
+                f.write("主題=我是主題\n")
+                f.write("經文章節=【箴言27章12節、詩篇46篇1節】\n")
+                f.write("經文1=〈箴言27章12節〉XXXXXXXX。\n")
+                f.write("經文2=〈詩篇46篇1節〉OOOOOOOO。\n")
+                f.write("[變數結束]\n\n")
+                
+                # 寫入提取的藍色文字內容
+                for text in self.extracted_text:
+                    f.write(f"{text}\n\n")
             
             print(f"✅ 成功提取 {len(self.extracted_text)} 段藍色文字")
             print(f"📝 已儲存到：{output_path}")
