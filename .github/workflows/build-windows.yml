@@ -1,0 +1,86 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ windows-executable ]
+  pull_request:
+    branches: [ windows-executable ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build executables
+      run: |
+        cd word_to_ppt
+        pyinstaller --onefile --name 1_extract --console 1_extract.py
+        pyinstaller --onefile --name 2_generate --console 2_generate.py
+    
+    - name: Prepare release package
+      run: |
+        mkdir release
+        copy word_to_ppt\dist\1_extract.exe release\
+        copy word_to_ppt\dist\2_generate.exe release\
+        copy word_to_ppt\template.pptx release\
+        copy word_to_ppt\config.txt release\
+        copy word_to_ppt\input.docx release\
+        echo "請將您的 Word 檔案命名為 input.docx" > release\使用說明.txt
+        echo "" >> release\使用說明.txt
+        echo "使用步驟：" >> release\使用說明.txt
+        echo "1. 雙擊 1_extract.exe 提取文字" >> release\使用說明.txt
+        echo "2. 編輯 output.txt 填入變數" >> release\使用說明.txt
+        echo "3. 雙擊 2_generate.exe 生成 PPT" >> release\使用說明.txt
+        echo "4. 開啟 output.pptx 查看結果" >> release\使用說明.txt
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: word-to-ppt-windows
+        path: release/
+    
+    - name: Create Release
+      if: github.event_name == 'push'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.run_number }}
+        name: Word to PPT Windows v${{ github.run_number }}
+        body: |
+          ## Word 轉 PPT Windows 版本
+          
+          ### 使用方式
+          1. 下載並解壓縮 `word-to-ppt-windows.zip`
+          2. 將您的 Word 檔案命名為 `input.docx` 放入資料夾
+          3. 雙擊 `1_extract.exe` 提取文字
+          4. 用記事本編輯 `output.txt` 填入變數
+          5. 雙擊 `2_generate.exe` 生成 PPT
+          6. 開啟 `output.pptx` 查看結果
+          
+          ### 包含檔案
+          - `1_extract.exe` - 提取文字工具
+          - `2_generate.exe` - 生成 PPT 工具
+          - `template.pptx` - 模板檔案
+          - `config.txt` - 設定檔
+          - `input.docx` - 範例輸入檔案
+          - `使用說明.txt` - 使用說明
+        files: |
+          release/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
