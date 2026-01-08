@@ -690,13 +690,13 @@ def main():
     config_path = sys.argv[3] if len(sys.argv) >= 4 else "config.txt"
     output_path = sys.argv[4] if len(sys.argv) >= 5 else "output.pptx"
     
-    # 顯示使用說明
-    if len(sys.argv) == 1:
+    # 顯示使用說明（如果使用 -h 或 --help 參數）
+    if len(sys.argv) >= 2 and sys.argv[1] in ['-h', '--help', 'help']:
         print("📖 PPT 生成程式 V2")
         print("=" * 70)
         print()
         print("使用方式：")
-        print("  python generate_ppt_from_template_v2.py [template] [input] [config] [output]")
+        print("  python 2_generate.py [template] [input] [config] [output]")
         print()
         print("參數說明（全部可選，使用預設值）：")
         print("  template  - 模板 PPT（預設：template.pptx）")
@@ -705,18 +705,18 @@ def main():
         print("  output    - 輸出 PPT（預設：output.pptx）")
         print()
         print("範例：")
-        print("  python generate_ppt_from_template_v2.py")
+        print("  python 2_generate.py")
         print("    → 使用所有預設值生成 PPT")
         print()
-        print("  python generate_ppt_from_template_v2.py my_template.pptx")
+        print("  python 2_generate.py my_template.pptx")
         print("    → 使用自訂模板，其他使用預設值")
         print()
         print("=" * 70)
         print()
         print("💡 完整流程：")
-        print("   1. python extract_blue_text_from_docx.py input.docx")
+        print("   1. python 1_extract.py input.docx")
         print("   2. 編輯 output.txt 填入變數")
-        print("   3. python generate_ppt_from_template_v2.py")
+        print("   3. python 2_generate.py")
         print()
         sys.exit(0)
     
