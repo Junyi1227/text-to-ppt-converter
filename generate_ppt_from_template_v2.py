@@ -499,7 +499,7 @@ class PPTGeneratorV2:
     
     def _create_textbox_with_format(self, slide, source_shape, text):
         """
-        創建文字框並複製格式
+        創建文字框並複製格式（支援多段落）
         
         Args:
             slide: 目標投影片
@@ -522,26 +522,37 @@ class PPTGeneratorV2:
         new_shape.text_frame.vertical_anchor = source_shape.text_frame.vertical_anchor
         new_shape.text_frame.auto_size = source_shape.text_frame.auto_size
         
-        # 複製文字格式
-        if source_shape.text_frame.paragraphs and new_shape.text_frame.paragraphs:
-            source_p = source_shape.text_frame.paragraphs[0]
-            target_p = new_shape.text_frame.paragraphs[0]
-            
-            # 複製段落對齊
-            target_p.alignment = source_p.alignment
-            
-            # 複製字體格式
-            if source_p.runs and target_p.runs:
-                source_run = source_p.runs[0]
-                for target_run in target_p.runs:
-                    if source_run.font.size:
-                        target_run.font.size = source_run.font.size
-                    if source_run.font.bold is not None:
-                        target_run.font.bold = source_run.font.bold
-                    if source_run.font.name:
-                        target_run.font.name = source_run.font.name
-                    if source_run.font.color and source_run.font.color.rgb:
-                        target_run.font.color.rgb = source_run.font.color.rgb
+        # 複製所有段落的格式
+        text_paragraphs = text.split('\n')
+        target_paragraphs = new_shape.text_frame.paragraphs
+        
+        # 確保目標有足夠的段落
+        while len(target_paragraphs) < len(text_paragraphs):
+            new_shape.text_frame.add_paragraph()
+            target_paragraphs = new_shape.text_frame.paragraphs
+        
+        # 為每個段落複製對應的格式
+        for i, target_p in enumerate(target_paragraphs):
+            # 找到對應的源段落（如果沒有就用最後一個）
+            source_para_index = min(i, len(source_shape.text_frame.paragraphs) - 1)
+            if source_para_index >= 0 and source_para_index < len(source_shape.text_frame.paragraphs):
+                source_p = source_shape.text_frame.paragraphs[source_para_index]
+                
+                # 複製段落對齊
+                target_p.alignment = source_p.alignment
+                
+                # 複製字體格式
+                if source_p.runs and target_p.runs:
+                    source_run = source_p.runs[0]
+                    for target_run in target_p.runs:
+                        if source_run.font.size:
+                            target_run.font.size = source_run.font.size
+                        if source_run.font.bold is not None:
+                            target_run.font.bold = source_run.font.bold
+                        if source_run.font.name:
+                            target_run.font.name = source_run.font.name
+                        if source_run.font.color and source_run.font.color.rgb:
+                            target_run.font.color.rgb = source_run.font.color.rgb
         
         return new_shape
     
