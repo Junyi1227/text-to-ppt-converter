@@ -57,7 +57,7 @@ class PPTGeneratorV2:
     
     def load_variables_and_content(self, txt_path):
         """
-        從 TXT 檔案讀取變數和內容
+        從 TXT 檔案讀取變數和內容（使用空行分隔頁面）
         
         Args:
             txt_path: TXT 檔案路徑
@@ -67,6 +67,7 @@ class PPTGeneratorV2:
         
         in_variables = False
         in_content = False
+        current_block = []
         
         for line in lines:
             line = line.rstrip('\n')
@@ -87,14 +88,24 @@ class PPTGeneratorV2:
                 key, value = line.split('=', 1)
                 self.variables[key.strip()] = value.strip()
             
-            # 讀取內容
+            # 讀取內容（使用空行分隔不同頁面）
             elif in_content:
-                # 跳過空行（但保留用於分隔）
                 if line.strip():
-                    self.content_lines.append(line.strip())
+                    # 有內容的行，加入當前區塊
+                    current_block.append(line.strip())
+                else:
+                    # 空行，表示一個區塊結束
+                    if current_block:
+                        # 將區塊合併成一個項目（用換行符連接）
+                        self.content_lines.append('\n'.join(current_block))
+                        current_block = []
+        
+        # 處理最後一個區塊（如果檔案結尾沒有空行）
+        if current_block:
+            self.content_lines.append('\n'.join(current_block))
         
         print(f"✅ 讀取變數: {len(self.variables)} 個")
-        print(f"✅ 讀取內容: {len(self.content_lines)} 行")
+        print(f"✅ 讀取內容區塊: {len(self.content_lines)} 個（用空行分隔）")
     
     def load_config(self, config_path):
         """
@@ -629,36 +640,33 @@ class PPTGeneratorV2:
                     verse_num += 1
             
             elif page_type == "AUTOCONTENT":
-                # 自動內容頁（從內容區讀取）
+                # 自動內容頁（從內容區讀取，每個區塊是一頁）
                 while content_index < len(self.content_lines):
-                    line = self.content_lines[content_index]
+                    block = self.content_lines[content_index]
                     content_index += 1
                     
+                    # 檢查區塊的第一行是否為經文格式
+                    lines_in_block = block.split('\n')
+                    first_line = lines_in_block[0] if lines_in_block else ""
+                    
                     # 檢查是否為經文格式（單行）
-                    verse_match = self.is_verse_format(line)
+                    verse_match = self.is_verse_format(first_line)
                     if verse_match:
+                        # 單行經文格式：〈章節〉內容
                         verse_ref = verse_match.group(1)
                         verse_text = verse_match.group(2).strip()
                         print(f"  生成經文頁: {verse_ref}")
                         self.create_verse_page(verse_ref, verse_text)
+                    elif first_line.startswith('〈') or first_line.startswith('<'):
+                        # 多行經文格式：第一行是章節，後面是內容
+                        verse_ref = first_line.lstrip('〈<').rstrip('〉>')
+                        verse_text = '\n'.join(lines_in_block[1:]) if len(lines_in_block) > 1 else ""
+                        print(f"  生成經文頁: {verse_ref}")
+                        self.create_verse_page(verse_ref, verse_text)
                     else:
-                        # 檢查是否為多行經文格式（章節在一行，內容在下一行）
-                        if line.startswith('〈') or line.startswith('<'):
-                            verse_ref = line.lstrip('〈<').rstrip('〉>')
-                            # 讀取下一行作為內容
-                            if content_index < len(self.content_lines):
-                                verse_text = self.content_lines[content_index]
-                                content_index += 1
-                                print(f"  生成經文頁: {verse_ref}")
-                                self.create_verse_page(verse_ref, verse_text)
-                            else:
-                                # 沒有下一行，當作一般內容
-                                print(f"  生成內文頁")
-                                self.create_content_page(line)
-                        else:
-                            # 一般內容
-                            print(f"  生成內文頁")
-                            self.create_content_page(line)
+                        # 一般內容（整個區塊）
+                        print(f"  生成內文頁")
+                        self.create_content_page(block)
         
         # 刪除前面的模板頁（4 頁）
         print(f"\n刪除模板頁...")
