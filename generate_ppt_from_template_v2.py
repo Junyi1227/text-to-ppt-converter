@@ -24,19 +24,34 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
 class PPTGeneratorV2:
     """PPT 生成器 V2"""
     
-    def __init__(self, template_path):
+    def __init__(self, template_path, output_path):
         """
         初始化 PPT 生成器
         
         Args:
             template_path: 模板 PPT 路徑（必須包含 4 頁）
+            output_path: 輸出 PPT 路徑
         """
+        # 先複製 template 到 output
+        import shutil
+        shutil.copy2(template_path, output_path)
+        
+        # 開啟模板用於參考
         self.template = Presentation(template_path)
-        self.new_prs = Presentation()
+        # 開啟輸出檔案用於編輯
+        self.output_prs = Presentation(output_path)
+        self.output_path = output_path
         
         # 確認模板有 4 頁
         if len(self.template.slides) < 4:
             raise ValueError(f"模板必須包含至少 4 頁，目前只有 {len(self.template.slides)} 頁")
+        
+        # 刪除輸出檔案中的所有頁面（稍後重新添加）
+        slide_count = len(self.output_prs.slides)
+        for i in range(slide_count - 1, -1, -1):
+            rId = self.output_prs.slides._sldIdLst[i].rId
+            self.output_prs.part.drop_rel(rId)
+            del self.output_prs.slides._sldIdLst[i]
         
         # 變數字典
         self.variables = {}
@@ -251,7 +266,7 @@ class PPTGeneratorV2:
         """
         source_slide = self.template.slides[0]
         slide_layout = source_slide.slide_layout
-        new_slide = self.new_prs.slides.add_slide(slide_layout)
+        new_slide = self.output_prs.slides.add_slide(slide_layout)
         
         # 刪除所有從版面配置繼承的形狀
         shapes_to_remove = []
@@ -299,7 +314,7 @@ class PPTGeneratorV2:
         """
         source_slide = self.template.slides[1]
         slide_layout = source_slide.slide_layout
-        new_slide = self.new_prs.slides.add_slide(slide_layout)
+        new_slide = self.output_prs.slides.add_slide(slide_layout)
         
         # 刪除所有從版面配置繼承的形狀
         shapes_to_remove = []
@@ -352,7 +367,7 @@ class PPTGeneratorV2:
         """
         source_slide = self.template.slides[2]
         slide_layout = source_slide.slide_layout
-        new_slide = self.new_prs.slides.add_slide(slide_layout)
+        new_slide = self.output_prs.slides.add_slide(slide_layout)
         
         # 刪除所有從模板繼承的文字框
         shapes_to_remove = []
@@ -427,7 +442,7 @@ class PPTGeneratorV2:
         """
         source_slide = self.template.slides[3]
         slide_layout = source_slide.slide_layout
-        new_slide = self.new_prs.slides.add_slide(slide_layout)
+        new_slide = self.output_prs.slides.add_slide(slide_layout)
         
         # 刪除所有從模板繼承的文字框
         shapes_to_remove = []
@@ -569,12 +584,9 @@ class PPTGeneratorV2:
                 if source_run.font.color and source_run.font.color.rgb:
                     target_run.font.color.rgb = source_run.font.color.rgb
     
-    def generate(self, output_path):
+    def generate(self):
         """
         根據頁面結構生成 PPT
-        
-        Args:
-            output_path: 輸出 PPT 路徑
         """
         content_index = 0  # 追蹤 AUTOCONTENT 的當前索引
         
@@ -647,10 +659,10 @@ class PPTGeneratorV2:
                             self.create_content_page(line)
         
         # 儲存 PPT
-        self.new_prs.save(output_path)
+        self.output_prs.save(self.output_path)
         print(f"\n✅ PPT 生成完成！")
-        print(f"📊 總共生成 {len(self.new_prs.slides)} 張投影片")
-        print(f"💾 已儲存到：{output_path}")
+        print(f"📊 總共生成 {len(self.output_prs.slides)} 張投影片")
+        print(f"💾 已儲存到：{self.output_path}")
 
 
 def main():
@@ -682,8 +694,8 @@ def main():
     print()
     
     try:
-        # 建立生成器
-        generator = PPTGeneratorV2(template_path)
+        # 建立生成器（會先複製 template 到 output）
+        generator = PPTGeneratorV2(template_path, output_path)
         
         # 載入變數和內容
         generator.load_variables_and_content(input_path)
@@ -692,7 +704,7 @@ def main():
         generator.load_config(config_path)
         
         # 生成 PPT
-        generator.generate(output_path)
+        generator.generate()
         
     except Exception as e:
         print(f"❌ 錯誤：{e}")
