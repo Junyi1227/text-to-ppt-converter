@@ -50,20 +50,39 @@
 
 ### 方法一：Word 轉 PPT（最新功能！）
 
+#### 🎯 簡化流程（推薦）
+
 ```bash
 # 1. 安裝相依套件
 pip install python-pptx python-docx
 
-# 2. 在 Word 中用藍色標記重點內容
+# 2. 將 Word 文件命名為 input.docx（或使用任意檔名）
 
-# 3. 一鍵轉換
-python docx_to_ppt.py 你的文件.docx
+# 3. 提取藍色文字
+python extract_blue_text_from_docx.py
+# 或指定檔名：python extract_blue_text_from_docx.py 你的文件.docx
 
-# 或指定輸出檔名和標題
-python docx_to_ppt.py 你的文件.docx 我的簡報.pptx "簡報標題"
+# 4. 編輯 output.txt 中的變數區塊（日期、主題、經文等）
+
+# 5. 生成 PPT
+python generate_ppt_from_template.py
+# 輸出：output.pptx
 ```
 
-**完成！** 自動提取藍色文字並建立精美 PPT
+**預設檔名：**
+- 輸入 Word：`input.docx`
+- 輸出文字：`output.txt`
+- 輸出 PPT：`output.pptx`
+
+#### 📝 一鍵版本（舊版，不含變數）
+
+```bash
+# 直接從 Word 轉 PPT（不含變數模板）
+python docx_to_ppt.py 你的文件.docx
+
+# 或使用預設檔名
+python docx_to_ppt.py
+```
 
 ### 方法二：使用 GUI 版本
 

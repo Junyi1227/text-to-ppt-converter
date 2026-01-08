@@ -411,61 +411,56 @@ class PPTGenerator:
 
 def main():
     """主程式"""
-    if len(sys.argv) < 3:
-        print("使用方式：")
-        print("  新格式（含變數）：")
-        print("    python generate_ppt_from_template.py <模板.pptx> <含變數的TXT> [輸出.pptx]")
+    # 參數 1：模板 PPT（可選，預設 template.pptx）
+    template_file = sys.argv[1] if len(sys.argv) >= 2 else "template.pptx"
+    
+    # 參數 2：含變數的 TXT（可選，預設 output.txt）
+    blue_text_file = sys.argv[2] if len(sys.argv) >= 3 else "output.txt"
+    
+    # 參數 3：輸出 PPT（可選，預設 output.pptx）
+    output_file = sys.argv[3] if len(sys.argv) >= 4 else "output.pptx"
+    
+    # 顯示使用說明（如果沒有任何參數）
+    if len(sys.argv) == 1:
+        print("📊 PPT 生成工具（模板式）")
+        print("=" * 70)
         print()
-        print("  舊格式（分離）：")
-        print("    python generate_ppt_from_template.py <模板.pptx> <藍色文字.txt> <配置檔.txt> [輸出.pptx]")
+        print("使用方式：")
+        print("  python generate_ppt_from_template.py [模板.pptx] [輸入.txt] [輸出.pptx]")
+        print()
+        print("預設值：")
+        print("  模板.pptx = template.pptx")
+        print("  輸入.txt  = output.txt")
+        print("  輸出.pptx = output.pptx")
         print()
         print("範例：")
-        print("  新格式：")
-        print('    python generate_ppt_from_template.py template.pptx 20251231_blue_text.txt output.pptx')
+        print("  python generate_ppt_from_template.py")
+        print("    → 使用 template.pptx + output.txt → 生成 output.pptx")
         print()
-        print("  舊格式：")
-        print('    python generate_ppt_from_template.py "20251231 Wed.pptx" blue_text.txt config.txt output.pptx')
+        print("  python generate_ppt_from_template.py template.pptx sermon.txt")
+        print("    → 使用 template.pptx + sermon.txt → 生成 output.pptx")
+        print()
+        print("  python generate_ppt_from_template.py template.pptx output.txt final.pptx")
+        print("    → 使用 template.pptx + output.txt → 生成 final.pptx")
+        print()
+        print("=" * 70)
+        print()
+        print("💡 TXT 格式說明：")
+        print("   支援新格式（含 [變數] 區塊）和舊格式（純內容）")
+        print()
+        sys.exit(0)
+    
+    # 檢查檔案是否存在
+    for file_path in [template_file, blue_text_file]:
+        if not os.path.exists(file_path):
+            print(f"❌ 找不到檔案：{file_path}")
+            sys.exit(1)
+    
+    # 生成 PPT（新格式：從TXT中讀取變數和內容）
+    generator = PPTGenerator(template_file)
+    
+    if not generator.load_blue_texts(blue_text_file):
         sys.exit(1)
-    
-    template_file = sys.argv[1]
-    
-    # 判斷是新格式還是舊格式
-    if len(sys.argv) >= 4 and not sys.argv[3].endswith('.pptx'):
-        # 舊格式：4個參數（模板、藍色文字、配置檔、輸出）
-        blue_text_file = sys.argv[2]
-        config_file = sys.argv[3]
-        output_file = sys.argv[4] if len(sys.argv) >= 5 else "output.pptx"
-        
-        # 檢查檔案
-        for file_path in [template_file, blue_text_file, config_file]:
-            if not os.path.exists(file_path):
-                print(f"❌ 找不到檔案：{file_path}")
-                sys.exit(1)
-        
-        # 生成 PPT（舊格式）
-        generator = PPTGenerator(template_file)
-        
-        if not generator.load_config(config_file):
-            sys.exit(1)
-        
-        if not generator.load_blue_texts(blue_text_file):
-            sys.exit(1)
-    else:
-        # 新格式：3個參數（模板、含變數的TXT、輸出）
-        blue_text_file = sys.argv[2]
-        output_file = sys.argv[3] if len(sys.argv) >= 4 else "output.pptx"
-        
-        # 檢查檔案
-        for file_path in [template_file, blue_text_file]:
-            if not os.path.exists(file_path):
-                print(f"❌ 找不到檔案：{file_path}")
-                sys.exit(1)
-        
-        # 生成 PPT（新格式：從TXT中讀取變數和內容）
-        generator = PPTGenerator(template_file)
-        
-        if not generator.load_blue_texts(blue_text_file):
-            sys.exit(1)
     
     if generator.generate(output_file):
         print("\n" + "=" * 70)

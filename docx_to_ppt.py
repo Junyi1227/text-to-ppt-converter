@@ -14,32 +14,45 @@ from text_to_ppt import TextToPPTConverter
 def main():
     """主程式：一鍵從 Word 轉換成 PPT"""
     
-    if len(sys.argv) < 2:
+    # 參數 1：輸入 Word 檔案（可選，預設 input.docx）
+    input_file = sys.argv[1] if len(sys.argv) >= 2 else "input.docx"
+    
+    # 參數 2：輸出 PPT 檔案（可選，預設 output.pptx）
+    output_ppt = sys.argv[2] if len(sys.argv) >= 3 else "output.pptx"
+    
+    # 參數 3：主標題（選用）
+    title = sys.argv[3] if len(sys.argv) >= 4 else "簡報標題"
+    
+    # 顯示使用說明（如果沒有任何參數）
+    if len(sys.argv) == 1:
+        print("🔄 Word 轉 PPT 工具（一鍵完成）")
+        print("=" * 70)
+        print()
         print("使用方式：")
-        print("  python docx_to_ppt.py <Word檔案.docx> [輸出PPT.pptx] [主標題]")
+        print("  python docx_to_ppt.py [Word檔案.docx] [輸出PPT.pptx]")
+        print()
+        print("預設值：")
+        print("  Word檔案.docx = input.docx")
+        print("  輸出PPT.pptx  = output.pptx")
         print()
         print("範例：")
+        print("  python docx_to_ppt.py")
+        print("    → 從 input.docx 提取，生成 output.txt，提示使用模板生成 PPT")
+        print()
         print("  python docx_to_ppt.py 20251231.docx")
-        print("  python docx_to_ppt.py 20251231.docx 我的簡報.pptx")
-        print("  python docx_to_ppt.py 20251231.docx 我的簡報.pptx '2025年度報告'")
+        print("    → 從 20251231.docx 提取，生成 output.txt")
+        print()
+        print("  python docx_to_ppt.py 20251231.docx sermon.pptx")
+        print("    → 從 20251231.docx 提取，準備生成 sermon.pptx")
+        print()
+        print("=" * 70)
         print()
         print("功能：")
         print("  1. 自動提取 Word 中的藍色文字")
-        print("  2. 轉換格式為 PPT 可用格式")
-        print("  3. 生成 PowerPoint 簡報")
-        sys.exit(1)
-    
-    input_file = sys.argv[1]
-    
-    # 判斷輸出檔名
-    if len(sys.argv) >= 3:
-        output_ppt = sys.argv[2]
-    else:
-        base_name = os.path.splitext(input_file)[0]
-        output_ppt = f"{base_name}.pptx"
-    
-    # 判斷主標題
-    title = sys.argv[3] if len(sys.argv) >= 4 else "簡報標題"
+        print("  2. 儲存為含變數模板的 TXT 格式")
+        print("  3. 提示使用 generate_ppt_from_template.py 生成 PPT")
+        print()
+        sys.exit(0)
     
     # 檢查輸入檔案
     if not os.path.exists(input_file):
@@ -66,21 +79,24 @@ def main():
     print()
     
     # 步驟 2：儲存為 TXT（含變數模板）
-    print("✏️  步驟 2/3：儲存為 TXT 格式（含變數模板）...")
-    temp_txt = f"{os.path.splitext(output_ppt)[0]}_temp.txt"
-    extractor.save_to_file(temp_txt, title)
-    print(f"   ✅ 已儲存到：{temp_txt}")
+    print("✏️  步驟 2/2：儲存為 TXT 格式（含變數模板）...")
+    output_txt = "output.txt"
+    extractor.save_to_file(output_txt, title)
+    print(f"   ✅ 已儲存到：{output_txt}")
     print()
     
-    # 步驟 3：使用模板生成 PPT
-    print("📊 步驟 3/3：使用模板生成 PowerPoint 簡報...")
-    print(f"   目標：{output_ppt}")
+    print("=" * 60)
+    print("✅ 提取完成！")
+    print("=" * 60)
     print()
-    print("⚠️  注意：請手動編輯變數區塊後，使用以下指令生成 PPT：")
-    print(f"   python generate_ppt_from_template.py template.pptx {temp_txt} {output_ppt}")
+    print("📝 下一步：請編輯 output.txt 中的變數區塊，然後執行：")
     print()
-    print("💡 或使用舊版直接轉換（不含變數）：")
-    print(f"   python text_to_ppt.py {temp_txt} {output_ppt}")
+    print("   python generate_ppt_from_template.py")
+    print()
+    print("   這將使用 template.pptx + output.txt 生成 output.pptx")
+    print()
+    print("💡 或指定輸出檔名：")
+    print(f"   python generate_ppt_from_template.py template.pptx output.txt {output_ppt}")
     return
     print()
     

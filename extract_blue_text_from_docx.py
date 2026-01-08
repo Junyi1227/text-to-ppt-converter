@@ -167,31 +167,43 @@ class BlueTextExtractor:
 
 def main():
     """主程式"""
-    if len(sys.argv) < 2:
+    # 參數 1：輸入 Word 檔案（可選，預設 input.docx）
+    input_file = sys.argv[1] if len(sys.argv) >= 2 else "input.docx"
+    
+    # 參數 2：輸出 TXT 檔案（可選，預設 output.txt）
+    output_file = sys.argv[2] if len(sys.argv) >= 3 else "output.txt"
+    
+    # 參數 3：主標題（選用，目前未使用）
+    title = sys.argv[3] if len(sys.argv) >= 4 else "簡報標題"
+    
+    # 顯示使用說明（如果沒有任何參數）
+    if len(sys.argv) == 1:
+        print("📖 藍色文字提取工具")
+        print("=" * 70)
+        print()
         print("使用方式：")
-        print("  python extract_blue_text_from_docx.py <Word檔案.docx> [輸出檔案.txt] [主標題]")
+        print("  python extract_blue_text_from_docx.py [Word檔案.docx] [輸出檔案.txt]")
+        print()
+        print("預設值：")
+        print("  Word檔案.docx = input.docx")
+        print("  輸出檔案.txt  = output.txt")
         print()
         print("範例：")
-        print("  python extract_blue_text_from_docx.py 20251231.docx")
-        print("  python extract_blue_text_from_docx.py 20251231.docx output.txt")
-        print("  python extract_blue_text_from_docx.py 20251231.docx output.txt '我的簡報'")
+        print("  python extract_blue_text_from_docx.py")
+        print("    → 從 input.docx 提取，輸出到 output.txt")
         print()
-        print("提取完成後，可直接使用：")
-        print("  python text_to_ppt.py output.txt")
-        sys.exit(1)
-    
-    input_file = sys.argv[1]
-    
-    # 判斷輸出檔名
-    if len(sys.argv) >= 3:
-        output_file = sys.argv[2]
-    else:
-        # 自動產生輸出檔名
-        base_name = os.path.splitext(input_file)[0]
-        output_file = f"{base_name}_blue_text.txt"
-    
-    # 判斷主標題
-    title = sys.argv[3] if len(sys.argv) >= 4 else "簡報標題"
+        print("  python extract_blue_text_from_docx.py 20251231.docx")
+        print("    → 從 20251231.docx 提取，輸出到 output.txt")
+        print()
+        print("  python extract_blue_text_from_docx.py 20251231.docx sermon.txt")
+        print("    → 從 20251231.docx 提取，輸出到 sermon.txt")
+        print()
+        print("=" * 70)
+        print()
+        print("💡 提取完成後，可直接執行：")
+        print("   python generate_ppt_from_template.py")
+        print()
+        sys.exit(0)
     
     # 檢查輸入檔案是否存在
     if not os.path.exists(input_file):
