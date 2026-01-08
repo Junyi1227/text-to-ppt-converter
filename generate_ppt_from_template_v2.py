@@ -109,7 +109,7 @@ class PPTGeneratorV2:
     
     def load_config(self, config_path):
         """
-        從 config 檔案讀取頁面結構和顏色設定
+        從 config 檔案讀取頁面結構
         
         Args:
             config_path: config 檔案路徑
@@ -118,11 +118,6 @@ class PPTGeneratorV2:
             lines = f.readlines()
         
         in_structure = False
-        in_colors = False
-        
-        # 預設顏色（與原本一樣）
-        self.verse_ref_color = (121, 155, 193)  # 經文章節顏色（淺藍色）
-        self.verse_text_color = (27, 54, 106)   # 經文內容顏色（深藍色）
         
         for line in lines:
             line = line.strip()
@@ -131,48 +126,10 @@ class PPTGeneratorV2:
             if not line or line.startswith('#'):
                 continue
             
-            # 檢查顏色設定區開始
-            if line == '[顏色設定]':
-                in_colors = True
-                in_structure = False
-                continue
-            
             # 檢查頁面結構區開始
             if line == '[頁面結構]':
                 in_structure = True
-                in_colors = False
                 continue
-            
-            # 讀取顏色設定
-            if in_colors and '=' in line:
-                key, value = line.split('=', 1)
-                key = key.strip()
-                value = value.strip()
-                
-                try:
-                    # 解析 RGB 值（格式：R,G,B 或 #RRGGBB）
-                    if value.startswith('#'):
-                        # 16進位格式：#RRGGBB
-                        hex_color = value.lstrip('#')
-                        r = int(hex_color[0:2], 16)
-                        g = int(hex_color[2:4], 16)
-                        b = int(hex_color[4:6], 16)
-                        color_tuple = (r, g, b)
-                    else:
-                        # RGB 格式：R,G,B
-                        rgb = [int(c.strip()) for c in value.split(',')]
-                        if len(rgb) == 3:
-                            color_tuple = tuple(rgb)
-                        else:
-                            continue
-                    
-                    if key == '經文章節顏色':
-                        self.verse_ref_color = color_tuple
-                    elif key == '經文內容顏色':
-                        self.verse_text_color = color_tuple
-                except ValueError:
-                    print(f"⚠️  警告：無法解析顏色設定 {key}={value}")
-                    continue
             
             # 讀取頁面結構
             if in_structure:
@@ -187,8 +144,6 @@ class PPTGeneratorV2:
                     self.page_structure.append((page_type, None))
         
         print(f"✅ 讀取頁面結構: {len(self.page_structure)} 頁")
-        print(f"✅ 經文章節顏色: RGB{self.verse_ref_color}")
-        print(f"✅ 經文內容顏色: RGB{self.verse_text_color}")
     
     def is_verse_format(self, text):
         """
@@ -510,8 +465,8 @@ class PPTGeneratorV2:
                             run.font.bold = source_run.font.bold
                         if source_run.font.name:
                             run.font.name = source_run.font.name
-                        # 經文章節使用設定的顏色
-                        run.font.color.rgb = RGBColor(*self.verse_ref_color)
+                        # 經文章節使用淺藍色
+                        run.font.color.rgb = RGBColor(121, 155, 193)
             
             # 第二段：經文內容
             p2 = new_shape.text_frame.add_paragraph()
@@ -531,8 +486,8 @@ class PPTGeneratorV2:
                             run.font.bold = source_run2.font.bold
                         if source_run2.font.name:
                             run.font.name = source_run2.font.name
-                        # 經文內容使用設定的顏色
-                        run.font.color.rgb = RGBColor(*self.verse_text_color)
+                        # 經文內容使用深藍色
+                        run.font.color.rgb = RGBColor(27, 54, 106)
             else:
                 # 如果模板只有一段，使用第一段的格式
                 if source_shape.text_frame.paragraphs:
@@ -548,8 +503,8 @@ class PPTGeneratorV2:
                                 run.font.bold = source_run.font.bold
                             if source_run.font.name:
                                 run.font.name = source_run.font.name
-                            # 經文內容使用設定的顏色
-                            run.font.color.rgb = RGBColor(*self.verse_text_color)
+                            # 經文內容使用深藍色
+                            run.font.color.rgb = RGBColor(27, 54, 106)
         
         return new_slide
     
