@@ -684,21 +684,41 @@ class PPTGeneratorV2:
 
 def main():
     """主程式"""
-    if len(sys.argv) != 5:
-        print("使用方式：")
-        print("  python generate_ppt_from_template_v2.py template.pptx input.txt config.txt output.pptx")
-        print()
-        print("參數說明：")
-        print("  template.pptx  - 模板 PPT（必須包含 4 頁）")
-        print("  input.txt      - 輸入文字檔（包含變數和內容）")
-        print("  config.txt     - 設定檔（定義頁面結構）")
-        print("  output.pptx    - 輸出 PPT 檔名")
-        sys.exit(1)
+    # 使用預設值
+    template_path = sys.argv[1] if len(sys.argv) >= 2 else "template.pptx"
+    input_path = sys.argv[2] if len(sys.argv) >= 3 else "output.txt"
+    config_path = sys.argv[3] if len(sys.argv) >= 4 else "config.txt"
+    output_path = sys.argv[4] if len(sys.argv) >= 5 else "output.pptx"
     
-    template_path = sys.argv[1]
-    input_path = sys.argv[2]
-    config_path = sys.argv[3]
-    output_path = sys.argv[4]
+    # 顯示使用說明
+    if len(sys.argv) == 1:
+        print("📖 PPT 生成程式 V2")
+        print("=" * 70)
+        print()
+        print("使用方式：")
+        print("  python generate_ppt_from_template_v2.py [template] [input] [config] [output]")
+        print()
+        print("參數說明（全部可選，使用預設值）：")
+        print("  template  - 模板 PPT（預設：template.pptx）")
+        print("  input     - 輸入文字檔（預設：output.txt）")
+        print("  config    - 設定檔（預設：config.txt）")
+        print("  output    - 輸出 PPT（預設：output.pptx）")
+        print()
+        print("範例：")
+        print("  python generate_ppt_from_template_v2.py")
+        print("    → 使用所有預設值生成 PPT")
+        print()
+        print("  python generate_ppt_from_template_v2.py my_template.pptx")
+        print("    → 使用自訂模板，其他使用預設值")
+        print()
+        print("=" * 70)
+        print()
+        print("💡 完整流程：")
+        print("   1. python extract_blue_text_from_docx.py input.docx")
+        print("   2. 編輯 output.txt 填入變數")
+        print("   3. python generate_ppt_from_template_v2.py")
+        print()
+        sys.exit(0)
     
     print("=" * 60)
     print("PPT 生成程式 V2")

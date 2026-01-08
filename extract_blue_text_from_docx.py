@@ -202,23 +202,43 @@ def main():
     # 參數 1：輸入 Word 檔案（可選，預設 input.docx）
     input_file = sys.argv[1] if len(sys.argv) >= 2 else "input.docx"
     
-    # 參數 2：輸出 TXT 檔案（可選，預設 output.txt）
-    output_file = sys.argv[2] if len(sys.argv) >= 3 else "output.txt"
+    # 固定輸出檔案為 output.txt
+    output_file = "output.txt"
     
-    # 參數 3：目標顏色（可選，預設藍色）
-    # 格式：RGB (例如：255,0,0) 或 16進位 (例如：#FF0000)
+    # 從 config.txt 讀取顏色設定（可選，預設藍色）
     target_color = None
-    if len(sys.argv) >= 4:
-        color_str = sys.argv[3]
+    config_file = "config.txt"
+    
+    if os.path.exists(config_file):
         try:
-            if color_str.startswith('#'):
-                target_color = color_str
-            else:
-                rgb = tuple(int(c.strip()) for c in color_str.split(','))
-                if len(rgb) == 3:
-                    target_color = rgb
-        except:
-            print(f"⚠️  警告：無法解析顏色 '{color_str}'，使用預設藍色")
+            with open(config_file, 'r', encoding='utf-8') as f:
+                in_color_section = False
+                for line in f:
+                    line = line.strip()
+                    
+                    if line == '[顏色設定]':
+                        in_color_section = True
+                        continue
+                    
+                    if line.startswith('[') and line.endswith(']'):
+                        in_color_section = False
+                        continue
+                    
+                    if in_color_section and line.startswith('提取文字顏色'):
+                        if '=' in line:
+                            _, value = line.split('=', 1)
+                            value = value.strip()
+                            
+                            if value.startswith('#'):
+                                target_color = value
+                            else:
+                                rgb = tuple(int(c.strip()) for c in value.split(','))
+                                if len(rgb) == 3:
+                                    target_color = rgb
+                            break
+        except Exception as e:
+            print(f"⚠️  警告：讀取 config.txt 時發生錯誤: {e}")
+            print(f"    使用預設藍色")
     
     # 顯示使用說明（如果沒有任何參數）
     if len(sys.argv) == 1:
@@ -226,36 +246,32 @@ def main():
         print("=" * 70)
         print()
         print("使用方式：")
-        print("  python extract_blue_text_from_docx.py [Word檔案] [輸出檔案] [顏色]")
+        print("  python extract_blue_text_from_docx.py [Word檔案]")
         print()
         print("參數說明：")
         print("  Word檔案  - Word 文件路徑（預設：input.docx）")
-        print("  輸出檔案  - 輸出 TXT 路徑（預設：output.txt）")
-        print("  顏色      - 目標顏色，支援兩種格式：")
-        print("              1. RGB 格式：R,G,B（例如：255,0,0 表示紅色）")
-        print("              2. 16進位格式：#RRGGBB（例如：#FF0000 表示紅色）")
-        print("              預設：藍色")
+        print()
+        print("固定設定：")
+        print("  輸出檔案：output.txt（固定）")
+        print("  顏色設定：從 config.txt 讀取「提取文字顏色」（預設：藍色）")
+        print()
+        print("Config 顏色設定範例（在 config.txt 中）：")
+        print("  [顏色設定]")
+        print("  提取文字顏色 = 0,0,255        # 藍色（預設）")
+        print("  提取文字顏色 = 255,0,0        # 紅色")
+        print("  提取文字顏色 = #FF0000        # 紅色（16進位）")
         print()
         print("範例：")
         print("  python extract_blue_text_from_docx.py")
-        print("    → 從 input.docx 提取藍色文字，輸出到 output.txt")
+        print("    → 從 input.docx 提取文字，輸出到 output.txt")
         print()
         print("  python extract_blue_text_from_docx.py 20251231.docx")
-        print("    → 從 20251231.docx 提取藍色文字，輸出到 output.txt")
-        print()
-        print("  python extract_blue_text_from_docx.py 20251231.docx sermon.txt")
-        print("    → 從 20251231.docx 提取藍色文字，輸出到 sermon.txt")
-        print()
-        print("  python extract_blue_text_from_docx.py doc.docx out.txt 255,0,0")
-        print("    → 從 doc.docx 提取紅色文字，輸出到 out.txt")
-        print()
-        print("  python extract_blue_text_from_docx.py doc.docx out.txt #FF0000")
-        print("    → 從 doc.docx 提取紅色文字（16進位格式），輸出到 out.txt")
+        print("    → 從 20251231.docx 提取文字，輸出到 output.txt")
         print()
         print("=" * 70)
         print()
         print("💡 提取完成後，可直接執行：")
-        print("   python generate_ppt_from_template_v2.py template.pptx out.txt config.txt output.pptx")
+        print("   python generate_ppt_from_template_v2.py")
         print()
         sys.exit(0)
     
