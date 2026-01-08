@@ -76,7 +76,7 @@ class BlueTextExtractor:
     
     def extract_from_docx(self, docx_path):
         """
-        從 Word 文件中提取所有藍色文字
+        從 Word 文件中提取所有藍色文字（連續的藍色段落會合併）
         
         Args:
             docx_path: Word 文件路徑
@@ -87,11 +87,25 @@ class BlueTextExtractor:
         try:
             doc = Document(docx_path)
             self.extracted_text = []
+            current_group = []  # 用來收集連續的藍色段落
             
             for paragraph in doc.paragraphs:
                 blue_text = self.extract_from_paragraph(paragraph)
+                
                 if blue_text:
-                    self.extracted_text.append(blue_text)
+                    # 如果是藍色段落，加入當前組
+                    current_group.append(blue_text)
+                else:
+                    # 如果不是藍色段落，將之前收集的組合併並加入結果
+                    if current_group:
+                        merged_text = '\n'.join(current_group)
+                        self.extracted_text.append(merged_text)
+                        current_group = []
+            
+            # 處理最後一組（如果文件結尾是藍色段落）
+            if current_group:
+                merged_text = '\n'.join(current_group)
+                self.extracted_text.append(merged_text)
             
             return self.extracted_text
         
