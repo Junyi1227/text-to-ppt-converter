@@ -402,7 +402,12 @@ def main():
         sys.exit(1)
     
     # 執行提取
-    print(f"📖 讀取 Word 檔案：{input_file}")
+    print("\n" + "="*60)
+    print("📖 Word 文字提取工具")
+    print("="*60)
+    print(f"\n正在分析文件：{input_file}")
+    print("請稍候...\n")
+    
     if target_color:
         if isinstance(target_color, str):
             print(f"🎨 目標顏色：{target_color}")

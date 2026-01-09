@@ -722,15 +722,17 @@ def main():
         print()
         sys.exit(0)
     
+    print("\n" + "=" * 60)
+    print("📊 PPT 生成程式 V2")
     print("=" * 60)
-    print("PPT 生成程式 V2")
-    print("=" * 60)
+    print("\n正在準備生成 PPT...")
+    print("請稍候...\n")
     print(f"模板檔案：{template_path}")
     print(f"輸入文字：{input_path}")
     print(f"設定檔案：{config_path}")
     print(f"輸出檔案：{output_path}")
     print("=" * 60)
-    print()
+    print("\n開始生成...\n")
     
     try:
         # 建立生成器（會先複製 template 到 output）
