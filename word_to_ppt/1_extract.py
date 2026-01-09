@@ -96,13 +96,15 @@ class BlueTextExtractor:
         return ' '.join(blue_text) if blue_text else None
     
     def extract_variables(self, docx_path):
-        """自動提取文件變數（日期、禮拜類型、主題）"""
+        """自動提取文件變數（日期、禮拜類型、主題、經文）"""
         import re
         
         doc = Document(docx_path)
         date = "2026年1月1日"
         service_type = "週三禮拜"
         title = "我是主題"
+        verse_refs = "【箴言27章12節、詩篇46篇1節】"
+        verses = []
         
         # 1. 提取日期和禮拜類型
         for para in doc.paragraphs:
@@ -141,33 +143,72 @@ class BlueTextExtractor:
             if found_date:
                 # 檢查字體大小
                 if para.runs:
-                    # 計算平均字體大小
                     sizes = [r.font.size.pt for r in para.runs if r.font.size]
                     if sizes:
                         avg_size = sum(sizes) / len(sizes)
-                        # 只取大字體的段落（通常主題字體較大）
                         if avg_size > 16 or len(title_lines) < 2:
                             title_lines.append(text)
                 else:
-                    # 如果沒有 run 資訊，也收集（但限制數量）
                     if len(title_lines) < 2:
                         title_lines.append(text)
         
         if title_lines:
-            title = '\n'.join(title_lines[:3])  # 最多取3行，保留換行
+            title = '\n'.join(title_lines[:3])
+        
+        # 3. 提取經文（只提取「經文：」後面的 17pt 字體經文）
+        found_jingwen = False
+        verse_list = []
+        
+        for para in doc.paragraphs:
+            text = para.text.strip()
+            if not text:
+                continue
+            
+            # 找到「經文:」標記
+            if '經文:' in text or '經文：' in text:
+                found_jingwen = True
+                continue
+            
+            # 在「經文:」之後
+            if found_jingwen:
+                # 檢查字體大小（必須是 17pt）
+                if para.runs:
+                    sizes = [r.font.size.pt for r in para.runs if r.font.size]
+                    if sizes:
+                        # 檢查是否所有字體都是 17pt
+                        if all(abs(s - 17.0) < 0.5 for s in sizes):  # 容許 ±0.5pt 誤差
+                            # 檢查是否為經文格式
+                            if text.startswith('〈') and '〉' in text:
+                                verse_ref = text.split('〉')[0].lstrip('〈')
+                                verse_content = text.split('〉', 1)[1].strip() if '〉' in text else ""
+                                
+                                verses.append(f"〈{verse_ref}〉{verse_content}")
+                                verse_list.append(verse_ref)
+                        else:
+                            # 字體不是 17pt，停止提取
+                            break
+        
+        # 組合經文章節
+        if verse_list:
+            verse_refs = '【' + '、'.join(verse_list) + '】'
         
         self.variables = {
             '日期': date,
             '禮拜類型': service_type,
             '主題': title,
-            '經文章節': '【箴言27章12節、詩篇46篇1節】',  # 使用預設值，由使用者填寫
+            '經文章節': verse_refs,
         }
+        
+        # 儲存經文
+        for i, verse in enumerate(verses, 1):
+            self.variables[f'經文{i}'] = verse
         
         print(f"✅ 自動提取變數:")
         print(f"  日期: {date}")
         print(f"  禮拜類型: {service_type}")
         print(f"  主題: {title[:50]}...")
-        print(f"  經文章節: (請使用者自行填寫)")
+        print(f"  經文章節: {verse_refs}")
+        print(f"  經文數量: {len(verses)}")
     
     def extract_from_docx(self, docx_path):
         """從 Word 文件中提取所有藍色文字（連續的藍色段落會合併）"""
@@ -249,8 +290,16 @@ class BlueTextExtractor:
                 f.write(f"禮拜類型={self.variables.get('禮拜類型', '週三禮拜')}\n")
                 f.write(f"主題={self.variables.get('主題', '我是主題')}\n")
                 f.write(f"經文章節={self.variables.get('經文章節', '【箴言27章12節、詩篇46篇1節】')}\n")
-                f.write("經文1=〈箴言27章12節〉XXXXXXXX。\n")
-                f.write("經文2=〈詩篇46篇1節〉OOOOOOOO。\n")
+                
+                # 寫入自動提取的經文（如果有的話）
+                verse_count = sum(1 for k in self.variables.keys() if k.startswith('經文'))
+                if verse_count > 0:
+                    for i in range(1, verse_count + 1):
+                        f.write(f"經文{i}={self.variables.get(f'經文{i}', '')}\n")
+                else:
+                    # 沒有提取到經文，使用預設值
+                    f.write("經文1=〈箴言27章12節〉XXXXXXXX。\n")
+                    f.write("經文2=〈詩篇46篇1節〉OOOOOOOO。\n")
                 f.write("[變數結束]\n\n")
                 
                 # 寫入提取的藍色文字內容
