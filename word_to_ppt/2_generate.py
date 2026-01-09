@@ -15,6 +15,8 @@ PPT 生成程式 V2 - 基於 template.pptx 的彈性化版本
 
 import sys
 import re
+import traceback
+from datetime import datetime
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
@@ -751,4 +753,26 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        # 記錄錯誤到檔案
+        try:
+            with open('error.log', 'a', encoding='utf-8') as f:
+                f.write(f"\n{'='*60}\n")
+                f.write(f"錯誤時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"程式: 2_generate.py\n")
+                f.write(f"錯誤訊息: {str(e)}\n")
+                f.write(f"詳細資訊:\n{traceback.format_exc()}\n")
+        except:
+            pass
+        
+        print(f"\n{'='*60}")
+        print(f"❌ 發生錯誤")
+        print(f"{'='*60}")
+        print(f"錯誤訊息: {e}")
+        print(f"\n錯誤詳細資訊已記錄到 error.log")
+        print(f"請將 error.log 提供給開發者協助除錯")
+        print(f"{'='*60}")
+    finally:
+        input("\n按 Enter 鍵退出...")

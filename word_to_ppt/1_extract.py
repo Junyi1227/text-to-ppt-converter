@@ -9,6 +9,8 @@ from docx import Document
 from docx.shared import RGBColor
 import sys
 import os
+import traceback
+from datetime import datetime
 
 
 class BlueTextExtractor:
@@ -305,8 +307,33 @@ def main():
     # 儲存結果
     if extractor.save_to_file(output_file):
         print(f"\n🎉 完成！現在可以執行：")
-        print(f"   python 2_generate.py")
+        print(f"   2_generate.exe (或 python 2_generate.py)")
+        print(f"\n提示：")
+        print(f"  1. 請先編輯 output.txt 填入變數")
+        print(f"  2. 然後執行 2_generate.exe 生成 PPT")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        # 記錄錯誤到檔案
+        try:
+            with open('error.log', 'a', encoding='utf-8') as f:
+                f.write(f"\n{'='*60}\n")
+                f.write(f"錯誤時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"程式: 1_extract.py\n")
+                f.write(f"錯誤訊息: {str(e)}\n")
+                f.write(f"詳細資訊:\n{traceback.format_exc()}\n")
+        except:
+            pass
+        
+        print(f"\n{'='*60}")
+        print(f"❌ 發生錯誤")
+        print(f"{'='*60}")
+        print(f"錯誤訊息: {e}")
+        print(f"\n錯誤詳細資訊已記錄到 error.log")
+        print(f"請將 error.log 提供給開發者協助除錯")
+        print(f"{'='*60}")
+    finally:
+        input("\n按 Enter 鍵退出...")
