@@ -154,7 +154,7 @@ class BlueTextExtractor:
                         title_lines.append(text)
         
         if title_lines:
-            title = ' '.join(title_lines[:3])  # 最多取3行
+            title = '\n'.join(title_lines[:3])  # 最多取3行，保留換行
         
         self.variables = {
             '日期': date,
