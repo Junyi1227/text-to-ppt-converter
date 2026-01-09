@@ -95,35 +95,89 @@ class BlueTextExtractor:
         
         return ' '.join(blue_text) if blue_text else None
     
+    def extract_variables(self, docx_path):
+        """自動提取文件變數（日期、禮拜類型、主題、經文）"""
+        import re
+        
+        doc = Document(docx_path)
+        date = "2026年1月1日"
+        service_type = "週三禮拜"
+        title = "我是主題"
+        verse_refs = "【箴言27章12節、詩篇46篇1節】"
+        verses = []
+        
+        all_paragraphs = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+        
+        # 1. 提取日期和禮拜類型
+        for text in all_paragraphs:
+            if '年' in text and '月' in text and '日' in text:
+                date_match = re.search(r'(\d{4}年\d{1,2}月\d{1,2}日)', text)
+                if date_match:
+                    date = date_match.group(1)
+                
+                if '週' in text or '禮拜' in text:
+                    for day in ['週一', '週二', '週三', '週四', '週五', '週六', '主日', '週日']:
+                        if day in text:
+                            service_type = f"{day}禮拜" if day != '主日' else '主日禮拜'
+                            break
+                break
+        
+        # 2. 提取主題
+        title_lines = []
+        for text in all_paragraphs:
+            if '〈' in text or '【' in text:
+                break
+            if '年' not in text and '月' not in text:
+                title_lines.append(text)
+        
+        if title_lines:
+            title = ' '.join(title_lines[:3])
+        
+        # 3. 提取經文
+        verse_list = []
+        for text in all_paragraphs:
+            if text.startswith('〈') and '〉' in text:
+                verse_ref = text.split('〉')[0].lstrip('〈')
+                verse_list.append(verse_ref)
+                
+                if '〉' in text:
+                    verse_content = text.split('〉', 1)[1].strip()
+                    verses.append(f"〈{verse_ref}〉{verse_content}")
+        
+        if verse_list:
+            verse_refs = '【' + '、'.join(verse_list) + '】'
+        
+        self.variables = {'日期': date, '禮拜類型': service_type, '主題': title, '經文章節': verse_refs}
+        for i, verse in enumerate(verses, 1):
+            self.variables[f'經文{i}'] = verse
+        
+        print(f"✅ 自動提取變數:")
+        print(f"  日期: {date}")
+        print(f"  禮拜類型: {service_type}")
+        print(f"  主題: {title[:50]}...")
+        print(f"  經文: {len(verses)} 個")
+    
     def extract_from_docx(self, docx_path):
-        """
-        從 Word 文件中提取所有藍色文字（連續的藍色段落會合併）
-        
-        Args:
-            docx_path: Word 文件路徑
-        
-        Returns:
-            list: 提取的藍色文字列表
-        """
+        """從 Word 文件中提取所有藍色文字（連續的藍色段落會合併）"""
         try:
+            # 先提取變數
+            self.extract_variables(docx_path)
+            
             doc = Document(docx_path)
             self.extracted_text = []
-            current_group = []  # 用來收集連續的藍色段落
+            current_group = []
             
             for paragraph in doc.paragraphs:
                 blue_text = self.extract_from_paragraph(paragraph)
                 
                 if blue_text:
-                    # 如果是藍色段落，加入當前組
                     current_group.append(blue_text)
                 else:
-                    # 如果不是藍色段落，將之前收集的組合併並加入結果
                     if current_group:
                         merged_text = '\n'.join(current_group)
                         self.extracted_text.append(merged_text)
                         current_group = []
             
-            # 處理最後一組（如果文件結尾是藍色段落）
             if current_group:
                 merged_text = '\n'.join(current_group)
                 self.extracted_text.append(merged_text)
@@ -177,14 +231,20 @@ class BlueTextExtractor:
         
         try:
             with open(output_path, 'w', encoding='utf-8') as f:
-                # 寫入變數模板
+                # 寫入自動提取的變數
                 f.write("[變數]\n")
-                f.write("日期=2026年1月1日\n")
-                f.write("禮拜類型=週三禮拜\n")
-                f.write("主題=我是主題\n")
-                f.write("經文章節=【箴言27章12節、詩篇46篇1節】\n")
-                f.write("經文1=〈箴言27章12節〉XXXXXXXX。\n")
-                f.write("經文2=〈詩篇46篇1節〉OOOOOOOO。\n")
+                f.write(f"日期={self.variables.get('日期', '2026年1月1日')}\n")
+                f.write(f"禮拜類型={self.variables.get('禮拜類型', '週三禮拜')}\n")
+                f.write(f"主題={self.variables.get('主題', '我是主題')}\n")
+                f.write(f"經文章節={self.variables.get('經文章節', '【箴言27章12節、詩篇46篇1節】')}\n")
+                
+                verse_count = sum(1 for k in self.variables.keys() if k.startswith('經文'))
+                if verse_count > 0:
+                    for i in range(1, verse_count + 1):
+                        f.write(f"經文{i}={self.variables.get(f'經文{i}', '')}\n")
+                else:
+                    f.write("經文1=〈箴言27章12節〉XXXXXXXX。\n")
+                    f.write("經文2=〈詩篇46篇1節〉OOOOOOOO。\n")
                 f.write("[變數結束]\n\n")
                 
                 # 寫入提取的藍色文字內容
