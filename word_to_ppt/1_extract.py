@@ -292,10 +292,13 @@ class BlueTextExtractor:
                 f.write(f"經文章節={self.variables.get('經文章節', '【箴言27章12節、詩篇46篇1節】')}\n")
                 
                 # 寫入自動提取的經文（如果有的話）
-                verse_count = sum(1 for k in self.variables.keys() if k.startswith('經文'))
+                # 計算經文數量（排除「經文章節」）
+                verse_count = sum(1 for k in self.variables.keys() if k.startswith('經文') and k[2:].isdigit())
                 if verse_count > 0:
                     for i in range(1, verse_count + 1):
-                        f.write(f"經文{i}={self.variables.get(f'經文{i}', '')}\n")
+                        verse_value = self.variables.get(f'經文{i}', '')
+                        if verse_value:  # 只寫入有內容的經文
+                            f.write(f"經文{i}={verse_value}\n")
                 else:
                     # 沒有提取到經文，使用預設值
                     f.write("經文1=〈箴言27章12節〉XXXXXXXX。\n")
