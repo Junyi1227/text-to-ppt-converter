@@ -460,4 +460,8 @@ if __name__ == "__main__":
         print(f"請將 error.log 提供給開發者協助除錯")
         print(f"{'='*60}")
     finally:
-        input("\n按 Enter 鍵退出...")
+        # 在非互動模式下不要等待輸入
+        try:
+            input("\n按 Enter 鍵退出...")
+        except EOFError:
+            pass

@@ -24,36 +24,36 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller python-pptx
+        pip install pyinstaller python-pptx python-docx
     
-    - name: Build GUI executable
+    - name: Build Extract executable
       run: |
-        pyinstaller --onefile --windowed --name=文字轉PPT工具 --add-data="examples/範例輸入文字.txt;examples" text_to_ppt_gui.py
+        pyinstaller --onefile --name=1_extract --add-data="examples;examples" word_to_ppt/1_extract.py
     
-    - name: Build CLI executable (optional)
+    - name: Build Generate executable
       run: |
-        pyinstaller --onefile --name=text_to_ppt text_to_ppt.py
+        pyinstaller --onefile --name=2_generate --add-data="examples;examples" word_to_ppt/2_generate.py
     
-    - name: Upload GUI artifact
+    - name: Upload Extract artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Windows-GUI-Executable
-        path: dist/文字轉PPT工具.exe
+        name: Windows-Extract-Tool
+        path: dist/1_extract.exe
     
-    - name: Upload CLI artifact
+    - name: Upload Generate artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Windows-CLI-Executable
-        path: dist/text_to_ppt.exe
+        name: Windows-Generate-Tool
+        path: dist/2_generate.exe
     
     - name: Create Release (on tag)
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          dist/文字轉PPT工具.exe
-          dist/text_to_ppt.exe
-          docs/Windows用戶使用說明.txt
-          examples/範例輸入文字.txt
+          dist/1_extract.exe
+          dist/2_generate.exe
+          examples/config_範例.txt
+          examples/template_範例.pptx
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
