@@ -26,6 +26,7 @@ class BlueTextExtractor:
         """
         self.tolerance = tolerance
         self.extracted_text = []
+        self.variables = {}  # 儲存自動提取的變數
         
         # 設定目標顏色（預設藍色）
         if target_color is None:
