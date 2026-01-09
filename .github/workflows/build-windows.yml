@@ -50,38 +50,38 @@ jobs:
         copy word_to_ppt\config.txt release\
         copy word_to_ppt\input.docx release\
         echo Word 轉 PPT 工具 - 使用說明 > release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo ================================ >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo 使用步驟： >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo 1. 將您的 Word 檔案命名為 input.docx 放入此資料夾 >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo 2. 雙擊 1_extract.exe 提取藍色文字 >> release\使用說明.txt
         echo    程式會自動生成 output.txt >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo 3. 用記事本編輯 output.txt，填入變數： >> release\使用說明.txt
         echo    - 日期 >> release\使用說明.txt
         echo    - 禮拜類型 >> release\使用說明.txt
         echo    - 主題 >> release\使用說明.txt
         echo    - 經文章節 >> release\使用說明.txt
         echo    - 經文內容 >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo 4. 雙擊 2_generate.exe 生成 PPT >> release\使用說明.txt
         echo    程式會自動生成 output.pptx >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo 5. 開啟 output.pptx 查看結果 >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo ================================ >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo 設定檔說明： >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo config.txt 可以設定： >> release\使用說明.txt
         echo - 提取文字的顏色 >> release\使用說明.txt
         echo - PPT 的頁面結構 >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         echo 如遇到問題，請查看 error.log 檔案 >> release\使用說明.txt
-        echo. >> release\使用說明.txt
+        echo "" >> release\使用說明.txt
         Compress-Archive -Path release\* -DestinationPath word-to-ppt-windows.zip
     
     - name: Upload artifact
