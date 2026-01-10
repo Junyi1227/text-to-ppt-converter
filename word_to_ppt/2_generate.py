@@ -56,6 +56,8 @@ class PPTGeneratorV2:
         self.page_structure = []
         # 記錄需要刪除的模板頁索引
         self.template_page_count = len(self.output_prs.slides)
+        # 一般設定
+        self.insert_title_between_paragraphs = False  # 段落間插入主題頁
     
     def load_variables_and_content(self, txt_path):
         """
@@ -111,7 +113,7 @@ class PPTGeneratorV2:
     
     def load_config(self, config_path):
         """
-        從 config 檔案讀取頁面結構
+        從 config 檔案讀取頁面結構和一般設定
         
         Args:
             config_path: config 檔案路徑
@@ -120,6 +122,7 @@ class PPTGeneratorV2:
             lines = f.readlines()
         
         in_structure = False
+        in_general_settings = False
         
         for line in lines:
             line = line.strip()
@@ -128,10 +131,27 @@ class PPTGeneratorV2:
             if not line or line.startswith('#'):
                 continue
             
+            # 檢查一般設定區開始
+            if line == '[一般設定]':
+                in_general_settings = True
+                in_structure = False
+                continue
+            
             # 檢查頁面結構區開始
             if line == '[頁面結構]':
                 in_structure = True
+                in_general_settings = False
                 continue
+            
+            # 讀取一般設定
+            if in_general_settings and '=' in line:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+                
+                if key == '段落間插入主題頁':
+                    self.insert_title_between_paragraphs = (value == '是')
+                    print(f"✅ 段落間插入主題頁: {'是' if self.insert_title_between_paragraphs else '否'}")
             
             # 讀取頁面結構
             if in_structure:
@@ -643,9 +663,17 @@ class PPTGeneratorV2:
             
             elif page_type == "AUTOCONTENT":
                 # 自動內容頁（從內容區讀取，每個區塊是一頁）
+                first_paragraph = True  # 追蹤是否為第一個段落
                 while content_index < len(self.content_lines):
                     block = self.content_lines[content_index]
                     content_index += 1
+                    
+                    # 如果啟用「段落間插入主題頁」且不是第一個段落，先插入主題頁
+                    if self.insert_title_between_paragraphs and not first_paragraph:
+                        print(f"  生成分隔主題頁")
+                        self.create_title_page(subtitle=None)
+                    
+                    first_paragraph = False
                     
                     # 檢查區塊的第一行是否為經文格式
                     lines_in_block = block.split('\n')
