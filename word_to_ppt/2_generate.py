@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-PPT 生成程式 V2 - 基於 template.pptx 的彈性化版本
+PPT 生成程式 V3 - 基於 template.pptx 的彈性化版本
 
 使用方式：
-    python generate_ppt_from_template_v2.py template.pptx input.txt config.txt output.pptx
+    python 2_generate.py template.pptx input.txt config.txt output.pptx
 
 功能：
     - 支援彈性化的頁面結構定義（透過 config）
     - 支援變數模板（從 TXT 讀取）
     - 自動識別經文格式
-    - 支援多種頁面類型：COVER, TITLE, CONTENT, BIBLE, AUTOCONTENT
+    - 支援多種頁面類型：封面頁、主題頁、內容頁、禮拜流程頁、經文頁、自動內容頁
+    - 支援段落間插入主題頁功能
 """
 
 import sys
@@ -42,9 +43,9 @@ class PPTGeneratorV2:
         self.output_prs = Presentation(output_path)
         self.output_path = output_path
         
-        # 確認模板有 4 頁
-        if len(self.output_prs.slides) < 4:
-            raise ValueError(f"模板必須包含至少 4 頁，目前只有 {len(self.output_prs.slides)} 頁")
+        # 確認模板有 5 頁
+        if len(self.output_prs.slides) < 5:
+            raise ValueError(f"模板必須包含至少 5 頁，目前只有 {len(self.output_prs.slides)} 頁")
         
         # 注意：不刪除模板頁，稍後生成時會用到
         
@@ -336,13 +337,13 @@ class PPTGeneratorV2:
     
     def create_title_page(self, subtitle=None):
         """
-        建立主題頁（複製 template 第 2 頁並修改內容）
+        建立主題頁（複製 template 第 3 頁並修改內容）
         
         Args:
             subtitle: 小標題（可選）
         """
-        # 使用模板第 2 頁的版面配置
-        template_slide = self.output_prs.slides[1]
+        # 使用模板第 3 頁的版面配置
+        template_slide = self.output_prs.slides[2]
         slide_layout = template_slide.slide_layout
         new_slide = self.output_prs.slides.add_slide(slide_layout)
         
@@ -388,15 +389,46 @@ class PPTGeneratorV2:
         
         return new_slide
     
+    def create_service_flow_page(self, text):
+        """
+        建立禮拜流程頁（複製 template 第 2 頁並修改內容）
+        
+        Args:
+            text: 禮拜流程項目文字
+        """
+        # 使用模板第 2 頁的版面配置
+        template_slide = self.output_prs.slides[1]
+        slide_layout = template_slide.slide_layout
+        new_slide = self.output_prs.slides.add_slide(slide_layout)
+        
+        # 刪除從版面配置繼承的空文字框
+        shapes_to_remove = []
+        for shape in new_slide.shapes:
+            if hasattr(shape, "text_frame") and not shape.text.strip():
+                shapes_to_remove.append(shape)
+        
+        for shape in shapes_to_remove:
+            sp = shape.element
+            sp.getparent().remove(sp)
+        
+        # 找到模板頁的第一個文字框並複製
+        for shape in template_slide.shapes:
+            if hasattr(shape, "text_frame"):
+                # 使用模板的位置和大小
+                self._create_textbox_with_format(new_slide, shape, text)
+                break
+        
+        return new_slide
+    
     def create_content_page(self, text):
         """
-        建立內文頁（複製 template 第 3 頁並修改內容）
+        建立內文頁（複製 template 第 4 頁並修改內容）
         
         Args:
             text: 內容文字
         """
-        # 使用模板第 3 頁的版面配置
-        template_slide = self.output_prs.slides[2]
+        # 使用模板第 4 頁的版面配置
+        template_slide = self.output_prs.slides[3]
         slide_layout = template_slide.slide_layout
         new_slide = self.output_prs.slides.add_slide(slide_layout)
         
@@ -421,14 +453,14 @@ class PPTGeneratorV2:
     
     def create_verse_page(self, verse_ref, verse_text):
         """
-        建立經文頁（複製 template 第 4 頁並修改內容）
+        建立經文頁（複製 template 第 5 頁並修改內容）
         
         Args:
             verse_ref: 經文章節
             verse_text: 經文內容
         """
-        # 使用模板第 4 頁的版面配置
-        template_slide = self.output_prs.slides[3]
+        # 使用模板第 5 頁的版面配置
+        template_slide = self.output_prs.slides[4]
         slide_layout = template_slide.slide_layout
         new_slide = self.output_prs.slides.add_slide(slide_layout)
         
@@ -623,25 +655,30 @@ class PPTGeneratorV2:
         """
         根據頁面結構生成 PPT
         """
-        content_index = 0  # 追蹤 AUTOCONTENT 的當前索引
+        content_index = 0  # 追蹤自動內容頁的當前索引
         
         for page_type, param in self.page_structure:
             print(f"生成頁面: {page_type}" + (f" = {param}" if param else ""))
             
-            if page_type == "COVER":
+            if page_type == "封面頁":
                 # 封面頁
                 self.create_cover_page(subtitle=param)
             
-            elif page_type == "TITLE":
+            elif page_type == "主題頁":
                 # 主題頁
                 self.create_title_page(subtitle=param)
             
-            elif page_type == "CONTENT":
+            elif page_type == "內容頁":
                 # 內文頁（固定內容）
                 if param:
                     self.create_content_page(param)
             
-            elif page_type == "BIBLE":
+            elif page_type == "禮拜流程頁":
+                # 禮拜流程頁（使用 template 第 2 頁樣式）
+                if param:
+                    self.create_service_flow_page(param)
+            
+            elif page_type == "經文頁":
                 # 經文頁（讀取變數區的經文1, 經文2, ...）
                 verse_num = 1
                 while True:
@@ -661,7 +698,7 @@ class PPTGeneratorV2:
                     
                     verse_num += 1
             
-            elif page_type == "AUTOCONTENT":
+            elif page_type == "自動內容頁":
                 # 自動內容頁（從內容區讀取，每個區塊是一頁）
                 first_paragraph = True  # 追蹤是否為第一個段落
                 while content_index < len(self.content_lines):
@@ -698,7 +735,7 @@ class PPTGeneratorV2:
                         print(f"  生成內文頁")
                         self.create_content_page(block)
         
-        # 刪除前面的模板頁（4 頁）
+        # 刪除前面的模板頁（5 頁）
         print(f"\n刪除模板頁...")
         for i in range(self.template_page_count - 1, -1, -1):
             rId = self.output_prs.slides._sldIdLst[i].rId
