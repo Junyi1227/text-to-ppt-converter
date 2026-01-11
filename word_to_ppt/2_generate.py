@@ -694,7 +694,10 @@ class PPTGeneratorV2:
                     # 用 〉 分隔章節和內容
                     if '〉' in verse_data:
                         verse_ref, verse_text = verse_data.split('〉', 1)
+                        # 移除 < 或 〈 以及緊跟的一個空格（如果有的話）
                         verse_ref = verse_ref.lstrip('〈<')
+                        if verse_ref.startswith(' '):
+                            verse_ref = verse_ref[1:]
                         verse_text = verse_text.strip()
                         
                         print(f"  生成經文頁 {verse_num}: {verse_ref}")
@@ -730,7 +733,14 @@ class PPTGeneratorV2:
                         self.create_verse_page(verse_ref, verse_text)
                     elif first_line.startswith('〈') or first_line.startswith('<'):
                         # 多行經文格式：第一行是章節，後面是內容
-                        verse_ref = first_line.lstrip('〈<').rstrip('〉>')
+                        verse_ref = first_line.lstrip('〈<')
+                        # 移除開頭的一個空格（如果有的話）
+                        if verse_ref.startswith(' '):
+                            verse_ref = verse_ref[1:]
+                        # 移除結尾的 > 或 〉 以及前面的一個空格（如果有的話）
+                        verse_ref = verse_ref.rstrip('〉>')
+                        if verse_ref.endswith(' '):
+                            verse_ref = verse_ref[:-1]
                         verse_text = '\n'.join(lines_in_block[1:]) if len(lines_in_block) > 1 else ""
                         print(f"  生成經文頁: {verse_ref}")
                         self.create_verse_page(verse_ref, verse_text)
