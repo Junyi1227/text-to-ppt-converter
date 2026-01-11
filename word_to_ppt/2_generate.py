@@ -505,6 +505,9 @@ class PPTGeneratorV2:
             p1 = new_shape.text_frame.paragraphs[0]
             p1.text = verse_ref_formatted
             
+            # 設定第一段段後間距為 12pt
+            p1.space_after = Pt(12)
+            
             # 複製第一段格式（如果模板有的話）
             if source_shape.text_frame.paragraphs:
                 source_p = source_shape.text_frame.paragraphs[0]
