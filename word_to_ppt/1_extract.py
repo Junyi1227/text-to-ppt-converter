@@ -89,11 +89,11 @@ class BlueTextExtractor:
             if run.font.color and run.font.color.type == 1:  # RGB 顏色
                 rgb = run.font.color.rgb
                 if self.is_blue(rgb):
-                    text = run.text.strip()
-                    if text:
-                        blue_text.append(text)
+                    # 不要對每個 run 單獨 strip，直接保留原始文字
+                    blue_text.append(run.text)
         
-        return ' '.join(blue_text) if blue_text else None
+        # 用空字串連接（不插入空格），最後才 strip 整體結果
+        return ''.join(blue_text).strip() if blue_text else None
     
     def extract_variables(self, docx_path):
         """自動提取文件變數（日期、禮拜類型、主題、經文）"""
