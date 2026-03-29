@@ -500,7 +500,7 @@ class PPTGeneratorV2:
             
             # 轉換章節格式並加上【】
             # verse_ref_formatted = self.convert_verse_reference(verse_ref)
-            verse_ref_formatted = f"【{verse_ref_formatted}】"
+            verse_ref_formatted = f"【{verse_ref}】"
             
             # 第一段：經文章節（從模板複製格式）
             p1 = new_shape.text_frame.paragraphs[0]
